@@ -14,6 +14,11 @@ $ErrorActionPreference = 'Continue'
 # Dot-source the module loader
 . "$PSScriptRoot\loader.ps1"
 
+# Startup hint
+if ($env:PWSH_TOOLS_QUIET -ne '1') {
+    Write-Host "  pwsh-tools - Run 'Show-Manual' for available commands." -ForegroundColor DarkGray
+}
+
 # --- End Framework Initialization ---
 
 
