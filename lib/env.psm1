@@ -346,6 +346,9 @@ function Get-Env {
 .EXAMPLE
     Remove-Env -Name "TEMP_DEBUG" -Permanent
     Remove-Env -Name "TEMP_DEBUG" -Scope Process
+
+.NOTES
+    For a complete function listing with synopses, use: Show-Manual env
 #>
 function Remove-Env {
     [CmdletBinding(SupportsShouldProcess)]
@@ -373,82 +376,6 @@ function Remove-Env {
     if ($PSCmdlet.ShouldProcess("$Scope env", "Remove $Name")) {
         [Environment]::SetEnvironmentVariable($Name, $null, $envTarget)
         Write-Verbose "Removed $Scope environment variable: $Name"
-    }
-}
-
-<#
-.SYNOPSIS
-    Shows usage information for env module functions.
-
-.DESCRIPTION
-    Without arguments, lists all available functions with a one-line synopsis.
-    When a function name is provided, shows the full comment-based help
-    (same as Get-Help -Full).
-
-.PARAMETER Name
-    The name of a function to show detailed help for.
-    If omitted, lists all functions.
-
-.EXAMPLE
-    Show-EnvHelp
-    Show-EnvHelp Add-Path
-    Show-EnvHelp Show-Path
-#>
-function Show-EnvHelp {
-    [CmdletBinding()]
-    param(
-        [Parameter(Position=0)]
-        [string]$Name
-    )
-
-    $allFunctions = @(
-        'Add-Path',
-        'Remove-Path',
-        'Get-Path',
-        'Show-Path',
-        'Set-Env',
-        'Get-Env',
-        'Remove-Env',
-        'Show-EnvHelp'
-    )
-
-    if ($Name) {
-        # Detailed help for one function
-        Get-Help $Name -Full 2>$null
-        if ($LASTEXITCODE -ne 0 -and -not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-            Write-Warning "Function '$Name' not found in env module."
-            Write-Host "Available functions: $($allFunctions -join ', ')"
-        }
-    } else {
-        # Overview listing
-        Write-Host "`n  env.psm1 - Environment & PATH management" -ForegroundColor Cyan
-        Write-Host "  --------------------------------------------------" -ForegroundColor DarkGray
-        Write-Host ""
-
-        $descriptions = @{
-            'Add-Path'      = 'Add a directory to PATH (deduplicates entries)'
-            'Remove-Path'   = 'Remove a directory from PATH'
-            'Get-Path'      = 'Get PATH entries (array or raw string)'
-            'Show-Path'     = 'Display PATH in a readable numbered list'
-            'Set-Env'       = 'Set an environment variable'
-            'Get-Env'       = 'Get an environment variable value'
-            'Remove-Env'    = 'Remove an environment variable'
-            'Show-EnvHelp'  = 'Show this help listing'
-        }
-
-        $maxLen = ($allFunctions | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
-
-        foreach ($fn in $allFunctions) {
-            $desc = $descriptions[$fn]
-            $padding = ' ' * ($maxLen - $fn.Length + 2)
-            Write-Host "  $fn$padding" -NoNewline -ForegroundColor Yellow
-            Write-Host $desc
-        }
-
-        Write-Host ""
-        Write-Host "  All functions accept -Scope (Process/User/Machine) or -Permanent (User shorthand)." -ForegroundColor DarkGray
-        Write-Host "  Use '$($allFunctions[0]) -?' for detailed parameter help on any function." -ForegroundColor DarkGray
-        Write-Host ""
     }
 }
 
@@ -524,6 +451,5 @@ Export-ModuleMember -Function @(
     'Show-Path',
     'Set-Env',
     'Get-Env',
-    'Remove-Env',
-    'Show-EnvHelp'
+    'Remove-Env'
 )
