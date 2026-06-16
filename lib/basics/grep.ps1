@@ -90,5 +90,3 @@ function grep {
         }
     }
 }
-
-Export-ModuleMember -Function @('grep')

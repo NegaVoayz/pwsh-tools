@@ -1,4 +1,4 @@
-# loader.ps1 - Scans lib\ for .psm1 files and imports them.
+# loader.ps1 - Scans lib\*\export.psm1 and imports each package.
 # Called from profile.ps1 on every shell start.
 
 $libPath = Join-Path $PSScriptRoot 'lib'
@@ -8,19 +8,21 @@ if (-not (Test-Path $libPath)) {
     return
 }
 
-$moduleFiles = @(Get-ChildItem -Path $libPath -Filter '*.psm1' -ErrorAction SilentlyContinue)
+$exports = @(Get-ChildItem -Path $libPath -Directory -ErrorAction SilentlyContinue |
+    ForEach-Object { Join-Path $_.FullName "$($_.Name).psm1" } |
+    Where-Object { Test-Path $_ } |
+    Sort-Object)
 
-if ($moduleFiles.Count -eq 0) {
-    # Empty lib directory is not an error — just means no modules installed yet
+if ($exports.Count -eq 0) {
     return
 }
 
-foreach ($moduleFile in $moduleFiles) {
-    $moduleName = $moduleFile.BaseName
+foreach ($exportPath in $exports) {
+    $packageName = Split-Path (Split-Path $exportPath -Parent) -Leaf
     try {
-        Import-Module -Name $moduleFile.FullName -Force -ErrorAction Stop
-        Write-Verbose "[pwsh-tools] Loaded module: $moduleName" -Verbose:$false
+        Import-Module -Name $exportPath -Force -ErrorAction Stop
+        Write-Verbose "[pwsh-tools] Loaded package: $packageName" -Verbose:$false
     } catch {
-        Write-Warning "[pwsh-tools] Failed to load module '$moduleName': $_"
+        Write-Warning "[pwsh-tools] Failed to load package '$packageName': $_"
     }
 }

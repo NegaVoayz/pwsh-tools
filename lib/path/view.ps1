@@ -1,20 +1,16 @@
-# path-view.psm1 - PATH inspection and display.
-#
-# Exports: Get-Path, Show-Path
-# Depends on path.psm1 for internal _Get-PathEntries / _Get-PathRaw helpers.
-
-Import-Module "$PSScriptRoot\path.psm1" -Force -ErrorAction Stop -WarningAction SilentlyContinue
+# view.psm1 — PATH inspection functions (package-private).
+# Dot-sourced by export.psm1; assumes helpers.psm1 is already loaded.
 
 <#
 .SYNOPSIS
     Gets PATH entries for a scope.
 .DESCRIPTION
-    Returns PATH entries as an array of strings, one per directory.
-    Also supports returning the raw semicolon-separated string.
+    Returns PATH entries as an array, one per directory.
+    Use -Raw for the raw semicolon-separated string.
 .PARAMETER Scope
     Process, User, or Machine. Defaults to Process.
 .PARAMETER Raw
-    If specified, returns the raw semicolon-separated string instead of an array.
+    Return the raw semicolon-separated string.
 .EXAMPLE
     Get-Path -Scope User | ForEach-Object { Write-Host $_ }
     Get-Path -Scope Machine -Raw
@@ -34,13 +30,12 @@ function Get-Path {
 .SYNOPSIS
     Displays PATH entries in a readable numbered list.
 .DESCRIPTION
-    Shows PATH entries with index numbers, scope label, and optional
-    existence checks. Missing directories are highlighted.
-    Purely for display - use Get-Path for programmatic access.
+    Shows entries with index, scope label, and optional existence check.
+    Use Get-Path for programmatic access.
 .PARAMETER Scope
     Process, User, or Machine. Defaults to Process.
 .PARAMETER Check
-    If specified, checks whether each PATH entry exists on disk.
+    If specified, checks whether each entry exists on disk.
 .EXAMPLE
     Show-Path
     Show-Path -Scope User -Check
@@ -71,5 +66,3 @@ function Show-Path {
         }
     }
 }
-
-Export-ModuleMember -Function @('Get-Path', 'Show-Path')

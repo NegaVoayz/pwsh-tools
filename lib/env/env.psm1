@@ -1,4 +1,4 @@
-# env.psm1 - General environment variable management.
+# env/export.psm1 — Environment variable management package.
 #
 # Scope reference:
 #   Process  - Current session only ($env:VAR). Lost on shell exit.

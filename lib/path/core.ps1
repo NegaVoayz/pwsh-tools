@@ -1,14 +1,10 @@
-# path.psm1 - PATH environment variable management.
-#
-# Exports: Add-Path, Remove-Path
-# Internal helpers (_Normalize-PathEntry, _Resolve-PathEntry, _Get-PathEntries,
-# _Get-PathRaw, _Set-PathEntries) are available to path-view.psm1.
+# core.psm1 — PATH mutation functions (package-private).
+# Dot-sourced by export.psm1; assumes helpers.psm1 is already loaded.
 
 <#
 .SYNOPSIS
     Adds a directory to a PATH scope.
 .DESCRIPTION
-    Adds a directory to the PATH environment variable at the specified scope.
     Deduplicates entries (case-insensitive, normalized comparison).
 .PARAMETER Path
     The directory path to add. Can be relative (will be resolved).
@@ -86,53 +82,3 @@ function Remove-Path {
         Write-Verbose "Removed from $Scope PATH: $Path ($removed match(es))"
     }
 }
-
-# ============================================================================
-# Internal Helpers (shared with path-view.psm1)
-# ============================================================================
-
-function _Normalize-PathEntry {
-    param([string]$Entry)
-    return $Entry.Trim().TrimEnd('\').Replace('/', '\')
-}
-
-function _Resolve-PathEntry {
-    param([string]$Entry)
-    $trimmed = $Entry.Trim().TrimEnd('\').Replace('/', '\')
-    if ([System.IO.Path]::IsPathRooted($trimmed)) { return $trimmed }
-    return [System.IO.Path]::GetFullPath($trimmed)
-}
-
-function _Get-PathEntries {
-    param([string]$Scope)
-    $raw = _Get-PathRaw -Scope $Scope
-    return $raw -split ';' | Where-Object { $_ } | ForEach-Object { $_.Trim() }
-}
-
-function _Get-PathRaw {
-    param([string]$Scope)
-    $value = [Environment]::GetEnvironmentVariable('PATH', $Scope)
-    if ($null -eq $value) { return '' } else { return $value }
-}
-
-function _Set-PathEntries {
-    param([string[]]$Entries, [string]$Scope)
-    $raw = ($Entries -join ';').TrimEnd(';')
-    [Environment]::SetEnvironmentVariable('PATH', $raw, $Scope)
-    if ($Scope -ne 'Process') {
-        $userPath    = [Environment]::GetEnvironmentVariable('PATH', 'User')
-        $machinePath = [Environment]::GetEnvironmentVariable('PATH', 'Machine')
-        $parts = @($machinePath, $userPath) | Where-Object { $_ }
-        $env:PATH = $parts -join ';'
-    }
-}
-
-Export-ModuleMember -Function @(
-    'Add-Path',
-    'Remove-Path',
-    '_Normalize-PathEntry',
-    '_Resolve-PathEntry',
-    '_Get-PathEntries',
-    '_Get-PathRaw',
-    '_Set-PathEntries'
-)

@@ -69,5 +69,3 @@ function tail {
     }
     end { if ($PSCmdlet.ParameterSetName -eq 'Input') { $lines | Select-Object -Last $N } }
 }
-
-Export-ModuleMember -Function @('head', 'tail')

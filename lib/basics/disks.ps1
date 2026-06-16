@@ -96,5 +96,3 @@ function du {
         }
     }
 }
-
-Export-ModuleMember -Function @('df', 'du')

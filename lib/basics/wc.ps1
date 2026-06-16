@@ -62,5 +62,3 @@ function wc {
         }
     }
 }
-
-Export-ModuleMember -Function @('wc')

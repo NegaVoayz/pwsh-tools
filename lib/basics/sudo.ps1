@@ -76,5 +76,3 @@ function sudo {
         } finally { Remove-Item $tmpOut -ErrorAction SilentlyContinue }
     }
 }
-
-Export-ModuleMember -Function @('sudo')

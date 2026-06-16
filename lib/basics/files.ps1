@@ -77,5 +77,3 @@ function ln {
         Write-Host "  $Link -> $Target"
     }
 }
-
-Export-ModuleMember -Function @('touch', 'ln')

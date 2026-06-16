@@ -40,5 +40,3 @@ function which {
         else      { Write-Host $results[0].Source }
     }
 }
-
-Export-ModuleMember -Function @('which')
