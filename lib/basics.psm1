@@ -264,51 +264,91 @@ function wc {
 # ============================================================================
 <#
 .SYNOPSIS
-    Run a command elevated (as Administrator).
+    Run a command elevated (as Administrator) and capture its output.
 .DESCRIPTION
-    Mirrors Unix `sudo`. Re-launches the current shell or a specified
-    command in an elevated process. The elevated window inherits the
-    current working directory.
+    Mirrors Unix `sudo`. Runs the given command in an elevated process
+    and captures stdout + stderr back to the current console. The current
+    shell blocks until the command completes (like real sudo).
+
+    If no command is given, opens an interactive elevated PowerShell window
+    (output cannot be captured in interactive mode).
+
+    For GUI programs (notepad, regedit, etc.), use -Gui to avoid blocking.
+
 .PARAMETER Command
     The command/script to run elevated. If omitted, opens an elevated
-    PowerShell prompt.
+    PowerShell prompt in a new window.
+
 .PARAMETER ArgumentList
     Arguments to pass to the command.
-.PARAMETER NoExit
-    Keep the elevated window open after the command finishes.
+
+.PARAMETER Gui
+    Launch without capturing output (useful for GUI programs). The
+    elevated process runs in its own window.
+
+.PARAMETER KeepOpen
+    Keep the elevated window open after the command finishes
+    (only meaningful with -Gui or when Command is omitted).
+
 .EXAMPLE
+    sudo whoami
+    sudo .\install-service.ps1 -Force
+    sudo notepad C:\Windows\System32\drivers\etc\hosts -Gui
     sudo
-    sudo notepad C:\Windows\System32\drivers\etc\hosts
-    sudo .\install-service.ps1 -NoExit
 #>
 function sudo {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='Capture')]
     param(
         [Parameter(Position=0)]
-        [string]$Command = 'powershell.exe',
+        [string]$Command,
 
         [Parameter(Position=1, ValueFromRemainingArguments=$true)]
         [string[]]$ArgumentList,
 
-        [switch]$NoExit
+        [Parameter(ParameterSetName='Gui')]
+        [switch]$Gui,
+
+        [switch]$KeepOpen
     )
 
-    $args = @()
-    if ($NoExit -and $Command -eq 'powershell.exe') { $args += '-NoExit' }
-    $args += $ArgumentList
+    # Interactive mode: no command given -> open elevated PowerShell window
+    if (-not $Command) {
+        Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoExit -Command cd '$PWD'"
+        return
+    }
 
-    if ($Command -eq 'powershell.exe') {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo 'powershell.exe'
-        $psi.Arguments = "-NoExit -Command `"cd '$PWD'; $($args -join ' ')`""
-        $psi.Verb = 'RunAs'
-        $psi.UseShellExecute = $true
-        [System.Diagnostics.Process]::Start($psi) | Out-Null
-    } else {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo $Command
-        $psi.Arguments = $args -join ' '
-        $psi.Verb = 'RunAs'
-        $psi.UseShellExecute = $true
-        [System.Diagnostics.Process]::Start($psi) | Out-Null
+    # GUI mode or explicit request to not capture
+    if ($Gui) {
+        $allArgs = $ArgumentList -join ' '
+        Start-Process $Command -Verb RunAs -ArgumentList $allArgs
+        return
+    }
+
+    # Capture mode: run elevated, capture all output to a temp file
+    $tmpOut = [System.IO.Path]::GetTempFileName()
+
+    # Build the command to run in the elevated process
+    $cmdArgs = ''
+    foreach ($a in $ArgumentList) { $cmdArgs += " '$($a -replace "'","''")'" }
+    $psCommand = "Set-Location '$PWD'; & '$Command'$cmdArgs *> '$tmpOut'"
+
+    # Encode as base64 to avoid any quoting/escaping issues
+    $bytes   = [System.Text.Encoding]::Unicode.GetBytes($psCommand)
+    $encoded = [Convert]::ToBase64String($bytes)
+
+    try {
+        $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru `
+            -ArgumentList "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
+
+        # Read captured output and display inline
+        if (Test-Path $tmpOut) {
+            $raw = Get-Content $tmpOut -Raw -ErrorAction SilentlyContinue
+            if ($raw) { Write-Host $raw.TrimEnd() }
+        }
+
+        if ($KeepOpen) { Read-Host "Press Enter to close" }
+    } finally {
+        Remove-Item $tmpOut -ErrorAction SilentlyContinue
     }
 }
 
