@@ -35,7 +35,7 @@ function Show-Manual {
 
     # Discover packages: each subdirectory with a <name>.psm1 entry point
     $packages = @(Get-ChildItem -Path $libRoot -Directory -ErrorAction SilentlyContinue |
-        Where-Object { (Test-Path (Join-Path $_.FullName "$($_.Name).psm1")) -and ($_.Name -ne 'man') } |
+        Where-Object { Test-Path (Join-Path $_.FullName "$($_.Name).psm1") } |
         Sort-Object Name)
 
     if ($packages.Count -eq 0) {
