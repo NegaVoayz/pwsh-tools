@@ -294,6 +294,7 @@ function wc {
     sudo whoami
     sudo .\install-service.ps1 -Force
     sudo notepad C:\Windows\System32\drivers\etc\hosts -Gui
+    "127.0.0.1 foo" | sudo Out-File -Append C:\Windows\System32\drivers\etc\hosts
     sudo
 #>
 function sudo {
@@ -305,50 +306,69 @@ function sudo {
         [Parameter(Position=1, ValueFromRemainingArguments=$true)]
         [string[]]$ArgumentList,
 
+        [Parameter(ValueFromPipeline=$true)]
+        [object]$InputObject,
+
         [Parameter(ParameterSetName='Gui')]
         [switch]$Gui,
 
         [switch]$KeepOpen
     )
 
-    # Interactive mode: no command given -> open elevated PowerShell window
-    if (-not $Command) {
-        Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoExit -Command cd '$PWD'"
-        return
+    begin { $stdin = @() }
+    process {
+        if ($PSBoundParameters.ContainsKey('InputObject')) {
+            $stdin += $InputObject
+        }
     }
-
-    # GUI mode or explicit request to not capture
-    if ($Gui) {
-        $allArgs = $ArgumentList -join ' '
-        Start-Process $Command -Verb RunAs -ArgumentList $allArgs
-        return
-    }
-
-    # Capture mode: run elevated, capture all output to a temp file
-    $tmpOut = [System.IO.Path]::GetTempFileName()
-
-    # Build the command to run in the elevated process
-    $cmdArgs = ''
-    foreach ($a in $ArgumentList) { $cmdArgs += " '$($a -replace "'","''")'" }
-    $psCommand = "Set-Location '$PWD'; & '$Command'$cmdArgs *> '$tmpOut'"
-
-    # Encode as base64 to avoid any quoting/escaping issues
-    $bytes   = [System.Text.Encoding]::Unicode.GetBytes($psCommand)
-    $encoded = [Convert]::ToBase64String($bytes)
-
-    try {
-        $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru `
-            -ArgumentList "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
-
-        # Read captured output and display inline
-        if (Test-Path $tmpOut) {
-            $raw = Get-Content $tmpOut -Raw -ErrorAction SilentlyContinue
-            if ($raw) { Write-Host $raw.TrimEnd() }
+    end {
+        # Interactive mode: no command given -> open elevated PowerShell window
+        if (-not $Command) {
+            Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoExit -Command cd '$PWD'"
+            return
         }
 
-        if ($KeepOpen) { Read-Host "Press Enter to close" }
-    } finally {
-        Remove-Item $tmpOut -ErrorAction SilentlyContinue
+        # GUI mode
+        if ($Gui) {
+            $allArgs = $ArgumentList -join ' '
+            Start-Process $Command -Verb RunAs -ArgumentList $allArgs
+            return
+        }
+
+        # Capture mode: run elevated, capture all output to a temp file
+        $tmpOut = [System.IO.Path]::GetTempFileName()
+
+        # Build the command to run in the elevated process
+        $cmdArgs = ''
+        foreach ($a in $ArgumentList) { $cmdArgs += " '$($a -replace "'","''")'" }
+
+        # If pipeline input was provided, pipe it into the elevated command
+        if ($stdin.Count -gt 0) {
+            $stdinText = ($stdin | Out-String).TrimEnd()
+            # Embed as a literal here-string piped to the command
+            $psCommand = "Set-Location '$PWD'; @'`n$stdinText`n'@ | & '$Command'$cmdArgs *> '$tmpOut'"
+        } else {
+            $psCommand = "Set-Location '$PWD'; & '$Command'$cmdArgs *> '$tmpOut'"
+        }
+
+        # Encode as base64 to avoid any quoting/escaping issues
+        $bytes   = [System.Text.Encoding]::Unicode.GetBytes($psCommand)
+        $encoded = [Convert]::ToBase64String($bytes)
+
+        try {
+            $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru `
+                -ArgumentList "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded"
+
+            # Read captured output and display inline
+            if (Test-Path $tmpOut) {
+                $raw = Get-Content $tmpOut -Raw -ErrorAction SilentlyContinue
+                if ($raw) { Write-Host $raw.TrimEnd() }
+            }
+
+            if ($KeepOpen) { Read-Host "Press Enter to close" }
+        } finally {
+            Remove-Item $tmpOut -ErrorAction SilentlyContinue
+        }
     }
 }
 
