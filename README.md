@@ -3,6 +3,7 @@
 A package-based PowerShell tool framework with Unix-like commands,
 PATH management, and a self-documenting help system.
 
+> **License:** [MIT](LICENSE)
 ## Quick Start
 
 ```powershell
@@ -195,3 +196,7 @@ PowerShell starts
 - Every package contains exactly one "kind" of functions
 - Every function body ≤ 80 lines
 - Internal sub-module files use `.ps1`, not `.psm1`
+
+## License
+
+MIT — see [LICENSE](LICENSE).
