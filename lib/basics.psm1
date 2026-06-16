@@ -76,30 +76,31 @@ function touch {
 function which {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
         [string]$Name,
 
         [switch]$All
     )
-    $results = Get-Command $Name -All -ErrorAction SilentlyContinue
-    if (-not $results) {
-        # Fall back to scanning PATH for non-PowerShell executables
-        $exts = ($env:PATHEXT -split ';') + ''
-        foreach ($dir in ($env:PATH -split ';' | Where-Object { $_ })) {
-            foreach ($ext in $exts) {
-                $candidate = Join-Path $dir ($Name + $ext)
-                if (Test-Path $candidate -PathType Leaf) {
-                    Write-Host $candidate
-                    if (-not $All) { return }
+    process {
+        $results = Get-Command $Name -All -ErrorAction SilentlyContinue
+        if (-not $results) {
+            $exts = ($env:PATHEXT -split ';') + ''
+            foreach ($dir in ($env:PATH -split ';' | Where-Object { $_ })) {
+                foreach ($ext in $exts) {
+                    $candidate = Join-Path $dir ($Name + $ext)
+                    if (Test-Path $candidate -PathType Leaf) {
+                        Write-Host $candidate
+                        if (-not $All) { return }
+                    }
                 }
             }
+            return
         }
-        return
-    }
-    if ($All) {
-        $results | ForEach-Object { Write-Host $_.Source }
-    } else {
-        Write-Host $results[0].Source
+        if ($All) {
+            $results | ForEach-Object { Write-Host $_.Source }
+        } else {
+            Write-Host $results[0].Source
+        }
     }
 }
 
@@ -428,24 +429,28 @@ function ln {
 function df {
     [CmdletBinding()]
     param(
+        [Parameter(Position=0, ValueFromPipeline=$true)]
         [string]$Path
     )
-
-    if ($Path) {
-        $drive = (Resolve-Path $Path).Path.Substring(0, 1) + ':'
-        Get-PSDrive -Name $drive[0] -ErrorAction SilentlyContinue |
-            Where-Object { $_.Used -gt 0 } |
-            Format-Table Name, @{N='Total(GB)';E={[math]::Round(($_.Used+$_.Free)/1GB,1)}},
-                          @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}},
-                          @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}},
-                          @{N='Use%';E={[math]::Round($_.Used/($_.Used+$_.Free)*100,1)}}
-    } else {
-        Get-PSDrive -PSProvider FileSystem |
-            Where-Object { $_.Used -gt 0 } |
-            Format-Table Name, @{N='Total(GB)';E={[math]::Round(($_.Used+$_.Free)/1GB,1)}},
-                          @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}},
-                          @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}},
-                          @{N='Use%';E={[math]::Round($_.Used/($_.Used+$_.Free)*100,1)}}
+    process {
+        if ($Path) {
+            $resolved = Resolve-Path $Path -ErrorAction SilentlyContinue
+            if (-not $resolved) { Write-Warning "Path not found: $Path"; return }
+            $drive = $resolved.Path.Substring(0, 1) + ':'
+            Get-PSDrive -Name $drive[0] -ErrorAction SilentlyContinue |
+                Where-Object { $_.Used -gt 0 } |
+                Format-Table Name, @{N='Total(GB)';E={[math]::Round(($_.Used+$_.Free)/1GB,1)}},
+                              @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}},
+                              @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}},
+                              @{N='Use%';E={[math]::Round($_.Used/($_.Used+$_.Free)*100,1)}}
+        } else {
+            Get-PSDrive -PSProvider FileSystem |
+                Where-Object { $_.Used -gt 0 } |
+                Format-Table Name, @{N='Total(GB)';E={[math]::Round(($_.Used+$_.Free)/1GB,1)}},
+                              @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}},
+                              @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}},
+                              @{N='Use%';E={[math]::Round($_.Used/($_.Used+$_.Free)*100,1)}}
+        }
     }
 }
 
@@ -471,37 +476,45 @@ function df {
 function du {
     [CmdletBinding()]
     param(
-        [Parameter(Position=0)]
+        [Parameter(Position=0, ValueFromPipeline=$true)]
         [string[]]$Path = '.',
 
         [int]$Depth = 0
     )
 
-    function _FormatSize($bytes) {
-        if ($bytes -gt 1GB) { return "$([math]::Round($bytes/1GB,2)) GB" }
-        if ($bytes -gt 1MB) { return "$([math]::Round($bytes/1MB,2)) MB" }
-        if ($bytes -gt 1KB) { return "$([math]::Round($bytes/1KB,2)) KB" }
-        return "$bytes B"
+    begin {
+        function _FormatSize($bytes) {
+            if ($bytes -gt 1GB) { return "$([math]::Round($bytes/1GB,2)) GB" }
+            if ($bytes -gt 1MB) { return "$([math]::Round($bytes/1MB,2)) MB" }
+            if ($bytes -gt 1KB) { return "$([math]::Round($bytes/1KB,2)) KB" }
+            return "$bytes B"
+        }
+        $paths = @()
     }
-
-    foreach ($p in $Path) {
-        $resolved = Resolve-Path $p -ErrorAction SilentlyContinue
-        if (-not $resolved) { Write-Warning "Path not found: $p"; continue }
-        $dir = Get-Item $resolved
-        if ($Depth -eq 0) {
-            $size = (Get-ChildItem $dir.FullName -Recurse -File -ErrorAction SilentlyContinue |
-                     Measure-Object -Property Length -Sum).Sum
-            Write-Host "$(_FormatSize $size)`t$($dir.FullName)"
-        } else {
-            $total = (Get-ChildItem $dir.FullName -Recurse -File -ErrorAction SilentlyContinue |
-                      Measure-Object -Property Length -Sum).Sum
-            Write-Host "$(_FormatSize $total)`t$($dir.FullName) (total)"
-            Get-ChildItem $dir.FullName -Directory -ErrorAction SilentlyContinue |
-                ForEach-Object {
-                    $size = (Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue |
-                             Measure-Object -Property Length -Sum).Sum
-                    Write-Host "  $(_FormatSize $size)`t$($_.Name)"
-                }
+    process {
+        if ($PSBoundParameters.ContainsKey('Path')) { $paths += $Path }
+    }
+    end {
+        if ($paths.Count -eq 0) { $paths = @('.') }
+        foreach ($p in $paths) {
+            $resolved = Resolve-Path $p -ErrorAction SilentlyContinue
+            if (-not $resolved) { Write-Warning "Path not found: $p"; continue }
+            $dir = Get-Item $resolved
+            if ($Depth -eq 0) {
+                $size = (Get-ChildItem $dir.FullName -Recurse -File -ErrorAction SilentlyContinue |
+                         Measure-Object -Property Length -Sum).Sum
+                Write-Host "$(_FormatSize $size)`t$($dir.FullName)"
+            } else {
+                $total = (Get-ChildItem $dir.FullName -Recurse -File -ErrorAction SilentlyContinue |
+                          Measure-Object -Property Length -Sum).Sum
+                Write-Host "$(_FormatSize $total)`t$($dir.FullName) (total)"
+                Get-ChildItem $dir.FullName -Directory -ErrorAction SilentlyContinue |
+                    ForEach-Object {
+                        $size = (Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue |
+                                 Measure-Object -Property Length -Sum).Sum
+                        Write-Host "  $(_FormatSize $size)`t$($_.Name)"
+                    }
+            }
         }
     }
 }
