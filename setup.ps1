@@ -22,7 +22,7 @@ foreach ($dir in $dirs) {
 # --- 2. Add dot-source hook to profile ---
 $profilePath = $PROFILE.CurrentUserCurrentHost
 $hookComment = '# pwsh-tools hook'
-$hookBody   = 'if (Test-Path "C:\pwsh-tools\profile.ps1") { . "C:\pwsh-tools\profile.ps1" }'
+$hookBody   = "if (Test-Path `"$ScriptRoot\profile.ps1`") { . `"$ScriptRoot\profile.ps1`" }"
 $hookBlock  = "$hookComment`n$hookBody"
 
 # Ensure profile directory exists
@@ -72,27 +72,6 @@ if (-not $alreadyPresent) {
     Write-Host "[+] Added to user PATH: $binPath"
 } else {
     Write-Host "[=] Already in user PATH: $binPath"
-}
-
-# --- 4. Initialize git repository ---
-if (-not (Test-Path "$ScriptRoot\.git")) {
-    Push-Location $ScriptRoot
-    try {
-        git init
-        git add -A
-        # Only commit if there is something staged
-        git diff --cached --quiet 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            git commit -m "Initial commit: pwsh-tools base structure"
-            Write-Host "[+] Git repository initialized and initial commit created"
-        } else {
-            Write-Host "[=] Git repository initialized (nothing to commit)"
-        }
-    } finally {
-        Pop-Location
-    }
-} else {
-    Write-Host "[=] Git repository already exists"
 }
 
 Write-Host "`nSetup complete. Restart your PowerShell session or run: . `"$ScriptRoot\profile.ps1`""

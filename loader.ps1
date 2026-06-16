@@ -8,9 +8,9 @@ if (-not (Test-Path $libPath)) {
     return
 }
 
-$moduleFiles = Get-ChildItem -Path $libPath -Filter '*.psm1' -ErrorAction SilentlyContinue
+$moduleFiles = @(Get-ChildItem -Path $libPath -Filter '*.psm1' -ErrorAction SilentlyContinue)
 
-if (-not $moduleFiles -or $moduleFiles.Count -eq 0) {
+if ($moduleFiles.Count -eq 0) {
     # Empty lib directory is not an error — just means no modules installed yet
     return
 }

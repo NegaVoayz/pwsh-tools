@@ -28,10 +28,15 @@
     Process, User, or Machine. Defaults to Process.
     User and Machine scopes also update the current session.
 
+.PARAMETER Permanent
+    Shorthand for -Scope User. Saves the change persistently (no admin required).
+    Ignored if -Scope is also specified explicitly.
+
 .PARAMETER Position
     Where to insert: Beginning (prepend) or End (append). Default is End.
 
 .EXAMPLE
+    Add-Path -Path "C:\my-tools\bin" -Permanent
     Add-Path -Path "C:\my-tools\bin" -Scope User -Position Beginning
 #>
 function Add-Path {
@@ -44,9 +49,15 @@ function Add-Path {
         [ValidateSet('Process', 'User', 'Machine')]
         [string]$Scope = 'Process',
 
+        [switch]$Permanent,
+
         [ValidateSet('Beginning', 'End')]
         [string]$Position = 'End'
     )
+
+    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) {
+        $Scope = 'User'
+    }
 
     $resolved = _Resolve-PathEntry $Path
     $current  = _Get-PathEntries -Scope $Scope
@@ -85,10 +96,15 @@ function Add-Path {
     The directory path to remove. Matched against individual entries via
     normalized comparison.
 
+.PARAMETER Permanent
+    Shorthand for -Scope User. Removes from persistent User PATH.
+    Ignored if -Scope is also specified explicitly.
+
 .PARAMETER Scope
     Process, User, or Machine. Defaults to Process.
 
 .EXAMPLE
+    Remove-Path -Path "C:\my-tools\bin" -Permanent
     Remove-Path -Path "C:\my-tools\bin" -Scope User
 #>
 function Remove-Path {
@@ -99,8 +115,14 @@ function Remove-Path {
 
         [Parameter(Position=1)]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string]$Scope = 'Process',
+
+        [switch]$Permanent
     )
+
+    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) {
+        $Scope = 'User'
+    }
 
     $current  = _Get-PathEntries -Scope $Scope
     $target   = _Normalize-PathEntry $Path
@@ -155,6 +177,61 @@ function Get-Path {
     return _Get-PathEntries -Scope $Scope
 }
 
+<#
+.SYNOPSIS
+    Displays PATH entries in a readable numbered list.
+
+.DESCRIPTION
+    Shows PATH entries with index numbers, scope label, and optional
+    existence checks. Missing directories are highlighted.
+    Purely for display — use Get-Path for programmatic access.
+
+.PARAMETER Scope
+    Process, User, or Machine. Defaults to Process.
+
+.PARAMETER Check
+    If specified, checks whether each PATH entry exists on disk and
+    marks missing directories with a warning.
+
+.EXAMPLE
+    Show-Path
+    Show-Path -Scope User -Check
+#>
+function Show-Path {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('Process', 'User', 'Machine')]
+        [string]$Scope = 'Process',
+
+        [switch]$Check
+    )
+
+    $entries = _Get-PathEntries -Scope $Scope
+    if ($entries.Count -eq 0) {
+        Write-Host "[$Scope PATH] (empty)"
+        return
+    }
+
+    Write-Host "[$Scope PATH] ($($entries.Count) entries):" -ForegroundColor Cyan
+    for ($i = 0; $i -lt $entries.Count; $i++) {
+        $idx   = "{0,3}" -f ($i + 1)
+        $entry = $entries[$i]
+
+        if ($Check) {
+            # Skip check for entries that use environment variable references
+            if ($entry -match '%\w+%') {
+                Write-Host "  $idx. $entry" -ForegroundColor Yellow
+            } elseif (Test-Path $entry) {
+                Write-Host "  $idx. $entry" -ForegroundColor Green
+            } else {
+                Write-Host "  $idx. $entry (missing)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "  $idx. $entry"
+        }
+    }
+}
+
 # ============================================================================
 # General Environment Variable Functions
 # ============================================================================
@@ -173,10 +250,15 @@ function Get-Path {
 .PARAMETER Value
     The value to set.
 
+.PARAMETER Permanent
+    Shorthand for -Scope User. Saves the variable persistently (no admin required).
+    Ignored if -Scope is also specified explicitly.
+
 .PARAMETER Scope
     Process, User, or Machine. Defaults to Process.
 
 .EXAMPLE
+    Set-Env -Name "JAVA_HOME" -Value "C:\Program Files\Java\jdk-17" -Permanent
     Set-Env -Name "JAVA_HOME" -Value "C:\Program Files\Java\jdk-17" -Scope User
 #>
 function Set-Env {
@@ -190,8 +272,14 @@ function Set-Env {
 
         [Parameter(Position=2)]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string]$Scope = 'Process',
+
+        [switch]$Permanent
     )
+
+    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) {
+        $Scope = 'User'
+    }
 
     $envTarget = switch ($Scope) {
         'Machine' { 'Machine' }
@@ -248,10 +336,15 @@ function Get-Env {
 .PARAMETER Name
     The environment variable name.
 
+.PARAMETER Permanent
+    Shorthand for -Scope User. Removes the variable from persistent User scope.
+    Ignored if -Scope is also specified explicitly.
+
 .PARAMETER Scope
     Process, User, or Machine. Defaults to Process.
 
 .EXAMPLE
+    Remove-Env -Name "TEMP_DEBUG" -Permanent
     Remove-Env -Name "TEMP_DEBUG" -Scope Process
 #>
 function Remove-Env {
@@ -262,8 +355,14 @@ function Remove-Env {
 
         [Parameter(Position=1)]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string]$Scope = 'Process',
+
+        [switch]$Permanent
     )
+
+    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) {
+        $Scope = 'User'
+    }
 
     $envTarget = switch ($Scope) {
         'Machine' { 'Machine' }
@@ -346,6 +445,7 @@ Export-ModuleMember -Function @(
     'Add-Path',
     'Remove-Path',
     'Get-Path',
+    'Show-Path',
     'Set-Env',
     'Get-Env',
     'Remove-Env'
