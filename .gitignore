@@ -1,0 +1,11 @@
+# User customization file (personal, never committed)
+custom.ps1
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+~$*
