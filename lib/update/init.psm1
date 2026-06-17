@@ -29,7 +29,7 @@ try {
     $fetchResult = git fetch --quiet 2>&1
     if ($LASTEXITCODE -eq 0) {
         $connected = $true
-        $behindResult = git rev-list --count HEAD..@{u} 2>&1
+        $behindResult = git rev-list --count 'HEAD..@{u}' 2>&1
         if ($LASTEXITCODE -eq 0) {
             $behind = [int]$behindResult
         }
