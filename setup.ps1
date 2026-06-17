@@ -74,4 +74,10 @@ if (-not $alreadyPresent) {
     Write-Host "[=] Already in user PATH: $binPath"
 }
 
-Write-Host "`nSetup complete. Restart your PowerShell session or run: . `"$ScriptRoot\profile.ps1`""
+# --- 4. Load tools into current session ---
+Write-Host "`nLoading pwsh-tools..."
+. "$ScriptRoot\profile.ps1"
+Write-Host ""
+
+Show-Manual
+Write-Host "Setup complete — you're ready to go!" -ForegroundColor Green
