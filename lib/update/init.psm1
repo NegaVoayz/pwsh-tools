@@ -40,16 +40,20 @@ try {
     Pop-Location
 }
 
-# Report status
+# Report status and set retry interval
 if (-not $connected) {
-    Write-Host "  pwsh-tools: unable to check for updates (no connection to remote)." -ForegroundColor DarkGray
+    Write-Host "  pwsh-tools: unable to check for updates (retrying in 2h)." -ForegroundColor DarkGray
+    # Set stamp 22h ago so next check is in ~2h instead of 24h
+    $stampValue = $now.AddHours(-22)
 } elseif ($behind -gt 0) {
     Write-Host "  pwsh-tools: $behind update(s) available -- run 'Update-PwshTools' to update." -ForegroundColor Yellow
+    $stampValue = $now
 } else {
     Write-Host "  pwsh-tools: up to date." -ForegroundColor Green
+    $stampValue = $now
 }
 
 # Update timestamp
 try {
-    Set-Content -Path $stampFile -Value $now.ToString('o') -Encoding UTF8 -ErrorAction SilentlyContinue
+    Set-Content -Path $stampFile -Value $stampValue.ToString('o') -Encoding UTF8 -ErrorAction SilentlyContinue
 } catch { }
