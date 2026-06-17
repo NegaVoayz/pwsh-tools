@@ -30,14 +30,14 @@
 .PARAMETER Recurse
     Recursively process files in subdirectories.
 .EXAMPLE
-    rename -Find '\.txt$' -Replace '.log' *.txt
-    rename -Prefix 'backup_' -Filter '*.docx'
-    rename -Suffix '_v2' -Case Lower *.ps1
-    rename -Find '\s+' -Replace '_' -Recurse *.log
-    Get-ChildItem *.jpg | rename -Prefix 'IMG_'
-    rename -Find 'foo' -Replace 'bar' -WhatIf *.txt
+    Rename-File -Find '\.txt$' -Replace '.log' *.txt
+    Rename-File -Prefix 'backup_' -Filter '*.docx'
+    Rename-File -Suffix '_v2' -Case Lower *.ps1
+    Rename-File -Find '\s+' -Replace '_' -Recurse *.log
+    Get-ChildItem *.jpg | Rename-File -Prefix 'IMG_'
+    Rename-File -Find 'foo' -Replace 'bar' -WhatIf *.txt
 #>
-function rename {
+function Rename-File {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
