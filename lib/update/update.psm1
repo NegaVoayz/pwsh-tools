@@ -77,12 +77,8 @@ function Update-PwshTools {
             return
         }
 
-        Write-Host "`n  Reloading packages..." -ForegroundColor Cyan
-        $profilePath = Join-Path $repoRoot 'profile.ps1'
-        if (Test-Path $profilePath) {
-            . $profilePath
-        }
-        Write-Host "  Update complete." -ForegroundColor Green
+    Write-Host "  Update downloaded. Restart your shell or run:" -ForegroundColor Green
+    Write-Host "  . `"$repoRoot\profile.ps1`"" -ForegroundColor Yellow
 
     } finally {
         Pop-Location
