@@ -16,11 +16,15 @@
     Remove any stored env snapshot from this bookmark.
 .PARAMETER InitCode
     PowerShell code to execute when jumping to this bookmark.
+.PARAMETER Auto
+    Automatically run init code when cd'ing into this directory
+    (requires Enable-AutoBookmark to be called first).
+.PARAMETER Recurse
+    With -Auto: also trigger in subdirectories of the bookmark.
 .EXAMPLE
     Set-Bookmark myproject
-    Set-Bookmark myproject -Snapshot All
-    Set-Bookmark myproject -Snapshot Temp
-    Set-Bookmark myproject -InitCode "npx tsc --watch"
+    Set-Bookmark myproject -Snapshot Temp -Auto
+    Set-Bookmark myproject -Auto -Recurse -InitCode "npx tsc --watch"
 #>
 function Set-Bookmark {
     [CmdletBinding(SupportsShouldProcess)]
@@ -30,7 +34,9 @@ function Set-Bookmark {
         [ValidateSet('All', 'Temp')]
         [string]$Snapshot,
         [switch]$NoSnapshot,
-        [string]$InitCode
+        [string]$InitCode,
+        [switch]$Auto,
+        [switch]$Recurse
     )
 
     $currentPath = (Get-Location).Path
@@ -52,12 +58,17 @@ function Set-Bookmark {
             created = (Get-Date -Format 'o')
             env     = $null
             init    = $null
+            auto    = $false
+            recurse = $false
         }
         $bookmarks[$Name] = $entry
     } else {
         $entry.path = $currentPath
         $entry.created = (Get-Date -Format 'o')
     }
+
+    if ($PSBoundParameters.ContainsKey('Auto')) { $entry.auto = $Auto }
+    if ($PSBoundParameters.ContainsKey('Recurse')) { $entry.recurse = $Recurse }
 
     if ($Snapshot) {
         if ($Snapshot -eq 'Temp') {
@@ -86,6 +97,8 @@ function Set-Bookmark {
     $flags = @()
     if ($entry.env) { $flags += 'env' }
     if ($entry.init) { $flags += 'init' }
+    if ($entry.auto) { $flags += 'auto' }
+    if ($entry.recurse) { $flags += 'recurse' }
     $flagStr = if ($flags.Count -gt 0) { " ($($flags -join ', '))" } else { '' }
 
     Write-Host "  [$Name] -> $currentPath$flagStr" -ForegroundColor Green

@@ -7,10 +7,13 @@
 . "$PSScriptRoot\storage.ps1"
 . "$PSScriptRoot\core.ps1"
 . "$PSScriptRoot\view.ps1"
+. "$PSScriptRoot\auto.ps1"
 
 Export-ModuleMember -Function @(
     'Set-Bookmark',
     'Use-Bookmark',
     'Get-Bookmark',
-    'Remove-Bookmark'
+    'Remove-Bookmark',
+    'Enable-AutoBookmark',
+    'Disable-AutoBookmark'
 )

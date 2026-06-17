@@ -40,6 +40,8 @@ function Get-Bookmark {
         $flags = @()
         if ($entry.env) { $flags += 'env' }
         if ($entry.init) { $flags += 'init' }
+        if ($entry.auto) { $flags += 'auto' }
+        if ($entry.recurse) { $flags += 'recurse' }
         $flagStr = if ($flags.Count -gt 0) {
             "  [$($flags -join ', ')]"
         } else { '' }
