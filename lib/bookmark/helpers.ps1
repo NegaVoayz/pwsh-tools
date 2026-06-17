@@ -48,3 +48,20 @@ function _Capture-EnvSnapshot {
     }
     return $snapshot
 }
+
+# Captures only env vars that were set via Set-TempEnv (tracked by the env module).
+# Reads the env module's internal tracking dictionary.
+function _Capture-TempEnvOnly {
+    $envModule = Get-Module env -ErrorAction SilentlyContinue
+    if (-not $envModule) { return @{} }
+    $tracked = & $envModule { $script:_TempEnvVars }
+    if (-not $tracked -or $tracked.Count -eq 0) {
+        Write-Warning "No temp-tracked env vars to snapshot. Use Set-TempEnv first."
+        return @{}
+    }
+    $snapshot = @{}
+    foreach ($key in $tracked.Keys) {
+        $snapshot[$key] = [string][Environment]::GetEnvironmentVariable($key, 'Process')
+    }
+    return $snapshot
+}

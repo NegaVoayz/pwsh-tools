@@ -10,14 +10,16 @@
 .PARAMETER Name
     The bookmark name. Case-insensitive.
 .PARAMETER Snapshot
-    Capture current environment variables with this bookmark.
+    Capture env vars: All (all non-system), or Temp (only vars
+    tracked via Set-TempEnv, permanentizable with Save-Env).
 .PARAMETER NoSnapshot
     Remove any stored env snapshot from this bookmark.
 .PARAMETER InitCode
     PowerShell code to execute when jumping to this bookmark.
 .EXAMPLE
     Set-Bookmark myproject
-    Set-Bookmark myproject -Snapshot
+    Set-Bookmark myproject -Snapshot All
+    Set-Bookmark myproject -Snapshot Temp
     Set-Bookmark myproject -InitCode "npx tsc --watch"
 #>
 function Set-Bookmark {
@@ -25,7 +27,8 @@ function Set-Bookmark {
     param(
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Name,
-        [switch]$Snapshot,
+        [ValidateSet('All', 'Temp')]
+        [string]$Snapshot,
         [switch]$NoSnapshot,
         [string]$InitCode
     )
@@ -57,8 +60,12 @@ function Set-Bookmark {
     }
 
     if ($Snapshot) {
-        $entry.env = _Capture-EnvSnapshot
-        Write-Verbose "Captured env snapshot for '$Name'"
+        if ($Snapshot -eq 'Temp') {
+            $entry.env = _Capture-TempEnvOnly
+        } else {
+            $entry.env = _Capture-EnvSnapshot
+        }
+        Write-Verbose "Captured env snapshot ($Snapshot) for '$Name'"
     } elseif ($NoSnapshot) {
         $entry.env = $null
         Write-Verbose "Removed env snapshot from '$Name'"
