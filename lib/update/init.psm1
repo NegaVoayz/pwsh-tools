@@ -2,7 +2,7 @@
 # Imported by bootstrap/init.ps1 on every shell start.
 # Checks for pwsh-tools updates once per day via git fetch.
 
-$repoRoot = Split-Path $PSScriptRoot -Parent
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot '.git'))) { return }
 
 $dataDir = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.pwsh-tools'

@@ -3,7 +3,7 @@
 # Update-PwshTools pulls the latest from git without touching
 # user-added modules (untracked files in lib/ are always safe).
 
-$script:_RepoRoot = Split-Path $PSScriptRoot -Parent
+$script:_RepoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
 <#
 .SYNOPSIS
