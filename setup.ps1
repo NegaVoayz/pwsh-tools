@@ -74,10 +74,37 @@ if (-not $alreadyPresent) {
     Write-Host "[=] Already in user PATH: $binPath"
 }
 
-# --- 4. Load tools into current session ---
+# --- 4. Create custom.ps1 template if missing ---
+$customPath = "$ScriptRoot\custom.ps1"
+if (-not (Test-Path $customPath)) {
+    @'
+# custom.ps1 — Your personal pwsh-tools settings.
+# This file is sourced automatically every shell start (after packages load).
+# Put your own env vars, aliases, prompts, and one-off setup here.
+# It is gitignored — never committed to the repo.
+
+# Fix Unicode rendering in PowerShell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+
+# Examples (uncomment and edit):
+# $env:PWSH_TOOLS_QUIET = '1'                # Suppress startup hint
+# Set-Env MY_VAR "value" -Permanent          # Persistent env var
+# Set-Alias g git                             # Convenience alias
+# oh-my-posh init pwsh | Invoke-Expression   # Prompt theme
+'@ | Set-Content -Path $customPath -Encoding UTF8
+    Write-Host "[+] Created custom.ps1 — add your personal settings here: $customPath"
+} else {
+    Write-Host "[=] custom.ps1 already exists: $customPath"
+}
+
+# --- 5. Load tools into current session ---
 Write-Host "`nLoading pwsh-tools..."
 . "$ScriptRoot\profile.ps1"
 Write-Host ""
 
 Show-Manual
+Write-Host ""
 Write-Host "Setup complete — you're ready to go!" -ForegroundColor Green
+Write-Host "  Add your own env vars, aliases, and settings to:" -ForegroundColor DarkGray
+Write-Host "  $customPath" -ForegroundColor Yellow
