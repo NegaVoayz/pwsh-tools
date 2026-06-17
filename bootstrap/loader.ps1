@@ -31,13 +31,14 @@ foreach ($exportPath in $exports) {
 }
 
 # Phase 2: Run module init hooks
-# Each module may optionally export an Invoke-OnInit function.
-# These are called after all packages are loaded, so they can
-# depend on other packages being available.
+# Each module may optionally define an internal _Invoke-OnInit function.
+# It is NOT exported — the loader discovers it via the module scope.
+# This avoids polluting the user's command namespace and prevents
+# collision when multiple modules define init hooks.
 foreach ($exportPath in $exports) {
     $module = Get-Module | Where-Object { $_.Path -eq $exportPath }
     if (-not $module) { continue }
-    $initCmd = $module.ExportedCommands['Invoke-OnInit']
+    $initCmd = & $module { Get-Command _Invoke-OnInit -ErrorAction SilentlyContinue }
     if (-not $initCmd) { continue }
     $packageName = $module.Name
     try {

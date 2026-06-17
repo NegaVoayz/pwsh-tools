@@ -97,7 +97,7 @@ function Update-PwshTools {
     system). Does a lightweight 'git fetch' once every 24 hours and
     prints a hint if updates are available. Does NOT auto-update.
 #>
-function Invoke-OnInit {
+function _Invoke-OnInit {
     $repoRoot = $script:_RepoRoot
     if (-not (Test-Path (Join-Path $repoRoot '.git'))) { return }
 
@@ -143,4 +143,4 @@ function Invoke-OnInit {
     } catch { }
 }
 
-Export-ModuleMember -Function @('Update-PwshTools', 'Invoke-OnInit')
+Export-ModuleMember -Function @('Update-PwshTools')
