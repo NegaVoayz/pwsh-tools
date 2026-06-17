@@ -1,11 +1,11 @@
-# core.ps1 — Bookmark management commands (mark, jump, unmark).
+# core.ps1 — Bookmark management commands (Set-Bookmark, Use-Bookmark, Remove-Bookmark).
 
 <#
 .SYNOPSIS
     Stores the current directory as a bookmark.
 .DESCRIPTION
     Saves the current location under a name for quick return via
-    'jump'. Optionally captures an environment variable snapshot
+    Use-Bookmark. Optionally captures an environment variable snapshot
     and stores init code to run when jumping back.
 .PARAMETER Name
     The bookmark name. Case-insensitive.
@@ -16,11 +16,11 @@
 .PARAMETER InitCode
     PowerShell code to execute when jumping to this bookmark.
 .EXAMPLE
-    mark myproject
-    mark myproject -Snapshot
-    mark myproject -InitCode "npx tsc --watch"
+    Set-Bookmark myproject
+    Set-Bookmark myproject -Snapshot
+    Set-Bookmark myproject -InitCode "npx tsc --watch"
 #>
-function mark {
+function Set-Bookmark {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true, Position=0)]
@@ -98,11 +98,11 @@ function mark {
 .PARAMETER NoInit
     Skip running the stored init code.
 .EXAMPLE
-    jump myproject
-    jump myproject -RestoreEnv
-    jump myproject -NoInit
+    Use-Bookmark myproject
+    Use-Bookmark myproject -RestoreEnv
+    Use-Bookmark myproject -NoInit
 #>
-function jump {
+function Use-Bookmark {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true, Position=0)]
@@ -114,7 +114,7 @@ function jump {
     $bookmarks = _Load-Bookmarks
 
     if (-not $bookmarks.Contains($Name)) {
-        Write-Error "Bookmark '$Name' not found. Use 'marks' to list bookmarks."
+        Write-Error "Bookmark '$Name' not found. Use 'Get-Bookmark' to list bookmarks."
         return
     }
 
@@ -154,9 +154,9 @@ function jump {
 .PARAMETER Name
     The bookmark name to remove.
 .EXAMPLE
-    unmark myproject
+    Remove-Bookmark myproject
 #>
-function unmark {
+function Remove-Bookmark {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true, Position=0)]

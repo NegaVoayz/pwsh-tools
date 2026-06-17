@@ -9,8 +9,8 @@
 . "$PSScriptRoot\view.ps1"
 
 Export-ModuleMember -Function @(
-    'mark',
-    'jump',
-    'marks',
-    'unmark'
+    'Set-Bookmark',
+    'Use-Bookmark',
+    'Get-Bookmark',
+    'Remove-Bookmark'
 )

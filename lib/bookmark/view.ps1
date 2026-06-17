@@ -1,4 +1,4 @@
-# view.ps1 — Bookmark listing (marks).
+# view.ps1 — Bookmark listing (Get-Bookmark).
 
 <#
 .SYNOPSIS
@@ -9,10 +9,10 @@
 .PARAMETER Detail
     Show env snapshot keys and init code for each bookmark.
 .EXAMPLE
-    marks
-    marks -Detail
+    Get-Bookmark
+    Get-Bookmark -Detail
 #>
-function marks {
+function Get-Bookmark {
     [CmdletBinding()]
     param(
         [switch]$Detail
@@ -22,7 +22,7 @@ function marks {
 
     if ($bookmarks.Count -eq 0) {
         Write-Host "  (no bookmarks)" -ForegroundColor DarkGray
-        Write-Host "  Use 'mark <name>' to store the current directory." -ForegroundColor DarkGray
+        Write-Host "  Use 'Set-Bookmark <name>' to store the current directory." -ForegroundColor DarkGray
         return
     }
 
