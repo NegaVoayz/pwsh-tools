@@ -11,8 +11,11 @@ $ErrorActionPreference = 'Continue'
 
 # --- Framework Initialization ---
 
-# Dot-source the module loader
-. "$PSScriptRoot\loader.ps1"
+# Root path for all bootstrap scripts to reference
+$PwshToolsRoot = $PSScriptRoot
+
+# Load packages and run module init hooks
+. "$PSScriptRoot\bootstrap\loader.ps1"
 
 # Startup hint
 if ($env:PWSH_TOOLS_QUIET -ne '1') {
