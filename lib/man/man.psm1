@@ -142,7 +142,8 @@ function _Get-ExportedFunctions {
 function _Get-Synopsis {
     param([string]$FunctionName, [string]$ModulePath)
 
-    $help = Get-Help $FunctionName -ErrorAction SilentlyContinue
+    $moduleName = Split-Path (Split-Path $ModulePath -Parent) -Leaf
+    $help = Get-Help "$moduleName\$FunctionName" -ErrorAction SilentlyContinue
     if ($help -and $help.Synopsis -and $help.Synopsis.Trim().Length -gt 0) {
         return $help.Synopsis.Trim() -replace '\n', ' '
     }
@@ -161,4 +162,12 @@ function _Get-Synopsis {
     return ''
 }
 
-Export-ModuleMember -Function @('Show-Manual')
+<#
+.SYNOPSIS
+    Man module init: logs that the help system is ready.
+#>
+function Invoke-OnInit {
+    Write-Verbose "[man] Help system ready — use 'Show-Manual' to see available commands."
+}
+
+Export-ModuleMember -Function @('Show-Manual', 'Invoke-OnInit')
