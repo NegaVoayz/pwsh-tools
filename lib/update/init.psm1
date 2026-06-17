@@ -22,20 +22,34 @@ if (-not (Test-Path $dataDir)) {
 }
 
 Push-Location $repoRoot
+$connected = $false
+$behind = 0
+
 try {
-    git fetch --quiet 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { return }
-
-    $behind = git rev-list --count HEAD..@{u} 2>&1
-    if ($LASTEXITCODE -ne 0) { return }
-
-    if ([int]$behind -gt 0) {
-        Write-Host "  pwsh-tools: $behind update(s) available -- run 'Update-PwshTools' to update." -ForegroundColor Yellow
+    $fetchResult = git fetch --quiet 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $connected = $true
+        $behindResult = git rev-list --count HEAD..@{u} 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $behind = [int]$behindResult
+        }
     }
-} catch { } finally {
+} catch {
+    # Best-effort; ignore errors
+} finally {
     Pop-Location
 }
 
+# Report status
+if (-not $connected) {
+    Write-Host "  pwsh-tools: unable to check for updates (no connection to remote)." -ForegroundColor DarkGray
+} elseif ($behind -gt 0) {
+    Write-Host "  pwsh-tools: $behind update(s) available -- run 'Update-PwshTools' to update." -ForegroundColor Yellow
+} else {
+    Write-Host "  pwsh-tools: up to date." -ForegroundColor Green
+}
+
+# Update timestamp
 try {
     Set-Content -Path $stampFile -Value $now.ToString('o') -Encoding UTF8 -ErrorAction SilentlyContinue
 } catch { }
