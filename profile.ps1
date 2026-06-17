@@ -14,8 +14,11 @@ $ErrorActionPreference = 'Continue'
 # Root path for all bootstrap scripts to reference
 $PwshToolsRoot = $PSScriptRoot
 
-# Load packages and run module init hooks
+# Phase 1: discover and import packages
 . "$PSScriptRoot\bootstrap\loader.ps1"
+
+# Phase 2: run per-module init hooks
+. "$PSScriptRoot\bootstrap\init.ps1"
 
 # Startup hint
 if ($env:PWSH_TOOLS_QUIET -ne '1') {
