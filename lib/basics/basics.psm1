@@ -9,6 +9,7 @@
 . "$PSScriptRoot\sudo.ps1"
 . "$PSScriptRoot\wc.ps1"
 . "$PSScriptRoot\which.ps1"
+. "$PSScriptRoot\navigate.ps1"
 
 Export-ModuleMember -Function @(
     'df', 'du',
@@ -17,5 +18,6 @@ Export-ModuleMember -Function @(
     'grep',
     'sudo',
     'wc',
-    'which'
+    'which',
+    'mkcd'
 )
