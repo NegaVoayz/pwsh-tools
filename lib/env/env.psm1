@@ -7,8 +7,6 @@
 . "$PSScriptRoot\core.ps1"
 . "$PSScriptRoot\tempenv.ps1"
 . "$PSScriptRoot\tempenv_view.ps1"
-. "$PSScriptRoot\temppath_helpers.ps1"
-. "$PSScriptRoot\temppath.ps1"
 
 Export-ModuleMember -Function @(
     'Set-Env',
@@ -18,8 +16,5 @@ Export-ModuleMember -Function @(
     'Get-TempEnv',
     'Remove-TempEnv',
     'Save-Env',
-    'Clear-TempEnv',
-    'Set-TempPath',
-    'Remove-TempPath',
-    'Save-Path'
+    'Clear-TempEnv'
 )

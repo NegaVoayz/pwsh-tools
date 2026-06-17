@@ -82,7 +82,7 @@ function Show-Manual {
     # --- Case 2: argument is a package name ---
     if ($pkgIndex.ContainsKey($Name)) {
         $funcs = $pkgIndex[$Name]
-        $pkgPath = Join-Path $libRoot $Name "$Name.psm1"
+        $pkgPath = Join-Path $libRoot "$Name\$Name.psm1"
         Write-Host "`n  [$Name] package" -ForegroundColor Cyan
         Write-Host "  --------------------------------------------------" -ForegroundColor DarkGray
         Write-Host ""

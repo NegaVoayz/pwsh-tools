@@ -7,10 +7,14 @@
 . "$PSScriptRoot\helpers.ps1"
 . "$PSScriptRoot\core.ps1"
 . "$PSScriptRoot\view.ps1"
+. "$PSScriptRoot\temppath.ps1"
 
 Export-ModuleMember -Function @(
     'Add-Path',
     'Remove-Path',
     'Get-Path',
-    'Show-Path'
+    'Show-Path',
+    'Set-TempPath',
+    'Remove-TempPath',
+    'Save-Path'
 )

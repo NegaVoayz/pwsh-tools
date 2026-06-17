@@ -5,6 +5,37 @@
 
 $script:_TempPathEntries = [System.Collections.Generic.List[string]]::new()
 
+# Returns normalized process PATH entries for deduplication.
+function _Get-NormalizedProcessPath {
+    $entries = _Get-PathEntries 'Process'
+    return @($entries | ForEach-Object { _Normalize-PathEntry $_ } | Where-Object { $_ })
+}
+
+# Adds entries to the persistent User PATH and rebuilds process PATH.
+function _Add-ToUserPath {
+    param([string[]]$NewEntries)
+    $existing = @(_Get-PathEntries 'User' | ForEach-Object { _Normalize-PathEntry $_ } | Where-Object { $_ })
+
+    $set = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($e in $existing) { $null = $set.Add($e) }
+
+    $toAdd = @()
+    foreach ($entry in $NewEntries) {
+        $resolved = _Resolve-PathEntry $entry
+        $normalized = _Normalize-PathEntry $resolved
+        if (-not $set.Contains($normalized)) {
+            $toAdd += $normalized
+            $null = $set.Add($normalized)
+        }
+    }
+
+    if ($toAdd.Count -eq 0) { return }
+
+    $final = $existing + $toAdd
+    _Set-PathEntries $final 'User'
+    # _Set-PathEntries with non-Process scope already rebuilds $env:PATH
+}
+
 <#
 .SYNOPSIS
     Adds a temporary PATH entry. (tracked, permanentizable).
@@ -29,32 +60,32 @@ function Set-TempPath {
         [string]$Position = 'End'
     )
 
-    $resolved = _Resolve-TempPath $Path
-    $currentEntries = _Get-ProcessPathEntries
+    $resolved = _Resolve-PathEntry $Path
+    $normalized = _Normalize-PathEntry $resolved
+    $currentEntries = _Get-NormalizedProcessPath
 
-    # Deduplicate (case-insensitive)
     $currentSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($e in $currentEntries) { $null = $currentSet.Add($e) }
 
-    if ($currentSet.Contains($resolved)) {
-        Write-Warning "'$resolved' is already in the process PATH."
+    if ($currentSet.Contains($normalized)) {
+        Write-Warning "'$normalized' is already in the process PATH."
         return
     }
 
-    if ($script:_TempPathEntries -contains $resolved) {
-        Write-Warning "'$resolved' is already tracked as a temp PATH entry."
+    if ($script:_TempPathEntries -contains $normalized) {
+        Write-Warning "'$normalized' is already tracked as a temp PATH entry."
         return
     }
 
-    if ($PSCmdlet.ShouldProcess("Process PATH", "Add $resolved")) {
+    if ($PSCmdlet.ShouldProcess("Process PATH", "Add $normalized")) {
         if ($Position -eq 'Beginning') {
-            $newEntries = @($resolved) + $currentEntries
+            $newEntries = @($normalized) + $currentEntries
         } else {
-            $newEntries = $currentEntries + @($resolved)
+            $newEntries = $currentEntries + @($normalized)
         }
-        _Set-ProcessPathEntries $newEntries
-        $script:_TempPathEntries.Add($resolved)
-        Write-Host "  Temp PATH + $resolved" -ForegroundColor Green
+        _Set-PathEntries $newEntries 'Process'
+        $script:_TempPathEntries.Add($normalized)
+        Write-Host "  Temp PATH + $normalized" -ForegroundColor Green
     }
 }
 
@@ -76,35 +107,34 @@ function Remove-TempPath {
         [string]$Path
     )
 
-    $resolved = _Resolve-TempPath $Path
+    $resolved = _Resolve-PathEntry $Path
+    $normalized = _Normalize-PathEntry $resolved
     $found = $false
 
-    # Remove from tracking list (case-insensitive)
     for ($i = $script:_TempPathEntries.Count - 1; $i -ge 0; $i--) {
-        if ($script:_TempPathEntries[$i] -eq $resolved) {
+        if ($script:_TempPathEntries[$i] -eq $normalized) {
             $script:_TempPathEntries.RemoveAt($i)
             $found = $true
         }
     }
 
     if (-not $found) {
-        Write-Warning "'$resolved' is not a tracked temp PATH entry."
+        Write-Warning "'$normalized' is not a tracked temp PATH entry."
     }
 
-    # Also remove from process PATH
-    $currentEntries = _Get-ProcessPathEntries
-    $newEntries = @($currentEntries | Where-Object { $_ -ne $resolved })
+    $currentEntries = _Get-NormalizedProcessPath
+    $newEntries = @($currentEntries | Where-Object { $_ -ne $normalized })
 
     if ($newEntries.Count -eq $currentEntries.Count) {
         if (-not $found) {
-            Write-Warning "'$resolved' was not found in the process PATH."
+            Write-Warning "'$normalized' was not found in the process PATH."
             return
         }
     }
 
-    if ($PSCmdlet.ShouldProcess("Process PATH", "Remove $resolved")) {
-        _Set-ProcessPathEntries $newEntries
-        Write-Host "  Temp PATH - $resolved" -ForegroundColor Green
+    if ($PSCmdlet.ShouldProcess("Process PATH", "Remove $normalized")) {
+        _Set-PathEntries $newEntries 'Process'
+        Write-Host "  Temp PATH - $normalized" -ForegroundColor Green
     }
 }
 
@@ -134,7 +164,7 @@ function Save-Path {
 
     $entries = $script:_TempPathEntries.ToArray()
     if ($PSCmdlet.ShouldProcess("User PATH", "Save $($entries.Count) temp path entries")) {
-        _Set-UserPathWithEntries $entries
+        _Add-ToUserPath $entries
         $count = $script:_TempPathEntries.Count
         $script:_TempPathEntries.Clear()
         Write-Host "  Saved $count temp PATH entrie(s) -> User PATH" -ForegroundColor Green
