@@ -10,7 +10,7 @@
     The directory path to add. Can be relative (will be resolved).
 .PARAMETER Scope
     User, Machine, or Process. Defaults to User (permanent).
-    Use Set-TempPath for temporary (process-only) entries.
+    Use Add-TempPath for temporary (process-only) entries.
 .PARAMETER Position
     Where to insert: Beginning (prepend) or End (append). Default is End.
 .EXAMPLE

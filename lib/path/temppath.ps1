@@ -1,7 +1,7 @@
 ﻿# temppath.ps1 -- Temporary PATH entry tracking and permanentization.
 #
 # Module-scoped state lives for the duration of the PowerShell session.
-# _TempPathEntries tracks PATH entries added via Set-TempPath.
+# _TempPathEntries tracks PATH entries added via Add-TempPath.
 
 $script:_TempPathEntries = [System.Collections.Generic.List[string]]::new()
 
@@ -48,10 +48,10 @@ function _Add-ToUserPath {
 .PARAMETER Position
     Add at Beginning or End of PATH. Default is End.
 .EXAMPLE
-    Set-TempPath C:\tools\bin
-    Set-TempPath C:\project\node_modules\.bin -Position Beginning
+    Add-TempPath C:\tools\bin
+    Add-TempPath C:\project\node_modules\.bin -Position Beginning
 #>
-function Set-TempPath {
+function Add-TempPath {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory=$true, Position=0)]
@@ -142,7 +142,7 @@ function Remove-TempPath {
 .SYNOPSIS
     Permanentizes all tracked temporary PATH entries.
 .DESCRIPTION
-    Promotes ALL tracked temp PATH entries (added via Set-TempPath)
+    Promotes ALL tracked temp PATH entries (added via Add-TempPath)
     from Process scope to persistent User scope in the registry.
     Clears the tracking list afterwards.
 .PARAMETER All

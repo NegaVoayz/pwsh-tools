@@ -15,7 +15,7 @@ Export-ModuleMember -Function @(
     'Remove-Path',
     'Get-Path',
     'Show-Path',
-    'Set-TempPath',
+    'Add-TempPath',
     'Remove-TempPath',
     'Save-Path',
     'Compare-Path'
