@@ -1,4 +1,4 @@
-# env_diff.ps1 — Permanent vs temporary env diff (Compare-Env).
+﻿# env_diff.ps1 -- Permanent vs temporary env diff (Compare-Env).
 
 # Builds a merged permanent view: Machine + User (User overrides Machine).
 function _Get-PermanentEnv {

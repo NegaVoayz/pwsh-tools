@@ -1,4 +1,4 @@
-# man/man.psm1 — Help browser package.
+﻿# man/man.psm1 -- Help browser package.
 #
 # Show-Manual discovers all packages under lib/ and presents their
 # exported functions. Each package documents itself via standard

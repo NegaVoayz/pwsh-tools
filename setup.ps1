@@ -1,4 +1,4 @@
-# setup.ps1 - One-time idempotent setup for pwsh-tools
+﻿# setup.ps1 - One-time idempotent setup for pwsh-tools
 # Safe to run multiple times.
 
 param(
@@ -78,10 +78,10 @@ if (-not $alreadyPresent) {
 $customPath = "$ScriptRoot\custom.ps1"
 if (-not (Test-Path $customPath)) {
     @'
-# custom.ps1 — Your personal pwsh-tools settings.
+# custom.ps1 -- Your personal pwsh-tools settings.
 # This file is sourced automatically every shell start (after packages load).
 # Put your own env vars, aliases, prompts, and one-off setup here.
-# It is gitignored — never committed to the repo.
+# It is gitignored -- never committed to the repo.
 
 # Fix Unicode rendering in PowerShell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -93,7 +93,7 @@ if (-not (Test-Path $customPath)) {
 # Set-Alias g git                             # Convenience alias
 # oh-my-posh init pwsh | Invoke-Expression   # Prompt theme
 '@ | Set-Content -Path $customPath -Encoding UTF8
-    Write-Host "[+] Created custom.ps1 — add your personal settings here: $customPath"
+    Write-Host "[+] Created custom.ps1 -- add your personal settings here: $customPath"
 } else {
     Write-Host "[=] custom.ps1 already exists: $customPath"
 }
@@ -105,6 +105,6 @@ Write-Host ""
 
 Show-Manual
 Write-Host ""
-Write-Host "Setup complete — you're ready to go!" -ForegroundColor Green
+Write-Host "Setup complete -- you're ready to go!" -ForegroundColor Green
 Write-Host "  Add your own env vars, aliases, and settings to:" -ForegroundColor DarkGray
 Write-Host "  $customPath" -ForegroundColor Yellow

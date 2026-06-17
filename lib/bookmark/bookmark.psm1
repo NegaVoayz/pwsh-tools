@@ -1,4 +1,4 @@
-# bookmark/bookmark.psm1 — Directory bookmark package entry point.
+﻿# bookmark/bookmark.psm1 -- Directory bookmark package entry point.
 #
 # Provides mark/jump/marks/unmark for storing and navigating to
 # bookmarked directories, with optional env snapshots and init code.

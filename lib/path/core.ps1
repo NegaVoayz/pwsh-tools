@@ -1,4 +1,4 @@
-# core.psm1 — PATH mutation functions (package-private).
+﻿# core.psm1 -- PATH mutation functions (package-private).
 # Dot-sourced by export.psm1; assumes helpers.psm1 is already loaded.
 
 <#

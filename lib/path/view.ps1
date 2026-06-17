@@ -1,4 +1,4 @@
-# view.psm1 — PATH inspection functions (package-private).
+﻿# view.psm1 -- PATH inspection functions (package-private).
 # Dot-sourced by export.psm1; assumes helpers.psm1 is already loaded.
 
 <#

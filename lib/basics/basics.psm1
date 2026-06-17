@@ -1,4 +1,4 @@
-# basics/export.ps1 — Unix-like commands package.
+﻿# basics/export.ps1 -- Unix-like commands package.
 #
 # Dot-sources all sub-modules, then exports every public function.
 

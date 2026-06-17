@@ -1,4 +1,4 @@
-# diff.ps1 — Permanent vs temporary PATH diff (Compare-Path).
+﻿# diff.ps1 -- Permanent vs temporary PATH diff (Compare-Path).
 
 # Returns merged permanent PATH entries (Machine + User, normalized).
 function _Get-PermanentPathEntries {
@@ -91,7 +91,7 @@ function Compare-Path {
     $tempCount = ($processEntries | Where-Object { -not $permanentSet.Contains($_) }).Count
     if ($tempCount -gt 0) {
         Write-Host ""
-        Write-Host "  ($tempCount temp PATH entries — use 'Save-Path -All' to permanentize)" -ForegroundColor DarkGray
+        Write-Host "  ($tempCount temp PATH entries -- use 'Save-Path -All' to permanentize)" -ForegroundColor DarkGray
     } elseif ($permOnly.Count -eq 0) {
         Write-Host ""
         Write-Host "  Process PATH matches permanent PATH (no differences)." -ForegroundColor Green

@@ -1,4 +1,4 @@
-# env/env.psm1 — Environment variable management package entry point.
+﻿# env/env.psm1 -- Environment variable management package entry point.
 #
 # Dot-sources internal modules in dependency order (core first, then
 # temp modules that may reference core functions), then exports only

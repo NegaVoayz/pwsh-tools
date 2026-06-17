@@ -1,4 +1,4 @@
-# storage.ps1 — JSON persistence for bookmarks.
+﻿# storage.ps1 -- JSON persistence for bookmarks.
 
 # Loads bookmarks from JSON. Returns empty ordered dictionary if file is
 # missing, empty, or corrupted.

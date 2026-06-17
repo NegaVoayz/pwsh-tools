@@ -1,11 +1,11 @@
-# navigate.ps1 — Directory navigation commands (package-private).
+﻿# navigate.ps1 -- Directory navigation commands (package-private).
 
 <#
 .SYNOPSIS
     Creates a directory and enters it.
 .DESCRIPTION
     Creates a directory (recursively, like 'mkdir -p') and immediately
-    changes the current location into it. Returns the created directory.
+    changes the current location into it.
 .PARAMETER Path
     The directory path to create and enter.
 .EXAMPLE

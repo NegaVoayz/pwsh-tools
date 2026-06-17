@@ -1,4 +1,4 @@
-# view.ps1 — Bookmark listing (Get-Bookmark).
+﻿# view.ps1 -- Bookmark listing (Get-Bookmark).
 
 <#
 .SYNOPSIS

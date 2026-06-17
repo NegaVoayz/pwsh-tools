@@ -1,4 +1,4 @@
-# helpers.psm1 — Internal PATH utilities (package-private).
+﻿# helpers.psm1 -- Internal PATH utilities (package-private).
 # Dot-sourced by export.psm1; never imported directly.
 
 function _Normalize-PathEntry {

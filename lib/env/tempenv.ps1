@@ -1,4 +1,4 @@
-# tempenv.ps1 — Temporary environment variable tracking and permanentization.
+﻿# tempenv.ps1 -- Temporary environment variable tracking and permanentization.
 #
 # Module-scoped state lives for the duration of the PowerShell session.
 # _TempEnvVars tracks vars explicitly set via Set-TempEnv (permanentizable).

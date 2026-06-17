@@ -1,4 +1,4 @@
-# path/export.psm1 — PATH management package entry point.
+﻿# path/export.psm1 -- PATH management package entry point.
 #
 # Dot-sources internal modules in dependency order (helpers first),
 # then exports only the public API. Internal _ functions stay

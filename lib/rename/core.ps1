@@ -1,4 +1,4 @@
-# core.ps1 — Batch file rename command.
+﻿# core.ps1 -- Batch file rename command.
 
 <#
 .SYNOPSIS

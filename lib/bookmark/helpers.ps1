@@ -1,4 +1,4 @@
-# helpers.ps1 — Bookmark internal utilities.
+﻿# helpers.ps1 -- Bookmark internal utilities.
 
 # Returns the directory where bookmark data lives ($HOME\.pwsh-tools).
 # Creates it if it doesn't exist.

@@ -1,4 +1,4 @@
-# temppath.ps1 — Temporary PATH entry tracking and permanentization.
+﻿# temppath.ps1 -- Temporary PATH entry tracking and permanentization.
 #
 # Module-scoped state lives for the duration of the PowerShell session.
 # _TempPathEntries tracks PATH entries added via Set-TempPath.

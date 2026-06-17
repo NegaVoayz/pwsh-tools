@@ -1,4 +1,4 @@
-# helpers.ps1 — Internal rename transformation utilities.
+﻿# helpers.ps1 -- Internal rename transformation utilities.
 
 # Splits a filename into (BaseName, Extension).
 # Example: "file.tar.gz" -> ("file.tar", ".gz")

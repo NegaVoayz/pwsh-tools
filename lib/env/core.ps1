@@ -1,4 +1,4 @@
-# core.ps1 — Core environment variable commands (Set-Env, Get-Env, Remove-Env).
+﻿# core.ps1 -- Core environment variable commands (Set-Env, Get-Env, Remove-Env).
 #
 # Scope reference:
 #   Process  - Current session only ($env:VAR). Lost on shell exit.

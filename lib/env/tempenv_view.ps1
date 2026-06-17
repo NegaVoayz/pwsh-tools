@@ -1,4 +1,4 @@
-# tempenv_view.ps1 — Temp env display (Get-TempEnv).
+﻿# tempenv_view.ps1 -- Temp env display (Get-TempEnv).
 
 <#
 .SYNOPSIS

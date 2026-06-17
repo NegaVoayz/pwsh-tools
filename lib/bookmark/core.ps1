@@ -1,4 +1,4 @@
-# core.ps1 — Bookmark management commands (Set-Bookmark, Use-Bookmark, Remove-Bookmark).
+﻿# core.ps1 -- Bookmark management commands (Set-Bookmark, Use-Bookmark, Remove-Bookmark).
 
 <#
 .SYNOPSIS
