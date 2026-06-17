@@ -162,12 +162,4 @@ function _Get-Synopsis {
     return ''
 }
 
-<#
-.SYNOPSIS
-    Man module init: logs that the help system is ready.
-#>
-function _Invoke-OnInit {
-    Write-Verbose "[man] Help system ready — use 'Show-Manual' to see available commands."
-}
-
 Export-ModuleMember -Function @('Show-Manual')

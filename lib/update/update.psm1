@@ -3,7 +3,7 @@
 # Update-PwshTools pulls the latest from git without touching
 # user-added modules (untracked files in lib/ are always safe).
 
-$script:_RepoRoot = Split-Path $PSScriptRoot -Parent
+$script:_RepoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
 <#
 .SYNOPSIS
@@ -87,60 +87,6 @@ function Update-PwshTools {
     } finally {
         Pop-Location
     }
-}
-
-<#
-.SYNOPSIS
-    Checks for pwsh-tools updates once per day.
-.DESCRIPTION
-    Called automatically on shell start (via the bootstrap init-hook
-    system). Does a lightweight 'git fetch' once every 24 hours and
-    prints a hint if updates are available. Does NOT auto-update.
-#>
-function _Invoke-OnInit {
-    $repoRoot = $script:_RepoRoot
-    if (-not (Test-Path (Join-Path $repoRoot '.git'))) { return }
-
-    $dataDir = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.pwsh-tools'
-    $stampFile = Join-Path $dataDir 'last_update_check'
-    $now = Get-Date
-
-    # Only check once per day
-    if (Test-Path $stampFile) {
-        try {
-            $lastCheck = [DateTime]::Parse((Get-Content $stampFile -Raw -ErrorAction Stop).Trim())
-            if (($now - $lastCheck).TotalHours -lt 24) { return }
-        } catch {
-            # Corrupt stamp file — check now
-        }
-    }
-
-    # Create data dir if needed (should already exist if bookmarks are used)
-    if (-not (Test-Path $dataDir)) {
-        New-Item -ItemType Directory -Path $dataDir -Force -ErrorAction SilentlyContinue | Out-Null
-    }
-
-    Push-Location $repoRoot
-    try {
-        $fetchResult = git fetch --quiet 2>&1
-        if ($LASTEXITCODE -ne 0) { return }
-
-        $behind = git rev-list --count HEAD..@{u} 2>&1
-        if ($LASTEXITCODE -ne 0) { return }
-
-        if ([int]$behind -gt 0) {
-            Write-Host "  pwsh-tools: $behind update(s) available — run 'Update-PwshTools' to update." -ForegroundColor Yellow
-        }
-    } catch {
-        # Silently ignore — update check is best-effort
-    } finally {
-        Pop-Location
-    }
-
-    # Update timestamp
-    try {
-        Set-Content -Path $stampFile -Value $now.ToString('o') -Encoding UTF8 -ErrorAction SilentlyContinue
-    } catch { }
 }
 
 Export-ModuleMember -Function @('Update-PwshTools')
