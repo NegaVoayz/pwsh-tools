@@ -8,6 +8,7 @@
 . "$PSScriptRoot\core.ps1"
 . "$PSScriptRoot\view.ps1"
 . "$PSScriptRoot\temppath.ps1"
+. "$PSScriptRoot\diff.ps1"
 
 Export-ModuleMember -Function @(
     'Add-Path',
@@ -16,5 +17,6 @@ Export-ModuleMember -Function @(
     'Show-Path',
     'Set-TempPath',
     'Remove-TempPath',
-    'Save-Path'
+    'Save-Path',
+    'Compare-Path'
 )
