@@ -15,13 +15,12 @@
     The environment variable name.
 .PARAMETER Value
     The value to set.
-.PARAMETER Permanent
-    Shorthand for -Scope User. Ignored if -Scope is also specified.
 .PARAMETER Scope
-    Process, User, or Machine. Defaults to Process.
+    User, Machine, or Process. Defaults to User (permanent).
+    Use Set-TempEnv for temporary (process-only) variables.
 .EXAMPLE
-    Set-Env -Name "JAVA_HOME" -Value "C:\Java\jdk-17" -Permanent
-    Set-Env -Name "JAVA_HOME" -Value "C:\Java\jdk-17" -Scope User
+    Set-Env -Name "JAVA_HOME" -Value "C:\Java\jdk-17"
+    Set-Env -Name "JAVA_HOME" -Value "C:\Java\jdk-17" -Scope Machine
 #>
 function Set-Env {
     [CmdletBinding(SupportsShouldProcess)]
@@ -31,11 +30,9 @@ function Set-Env {
         [Parameter(Mandatory=$true, Position=1)]
         [string]$Value,
         [Parameter(Position=2)]
-        [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process',
-        [switch]$Permanent
+        [ValidateSet('User', 'Machine', 'Process')]
+        [string]$Scope = 'User'
     )
-    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) { $Scope = 'User' }
     $envTarget = switch ($Scope) { 'Machine' { 'Machine' } 'User' { 'User' } default { 'Process' } }
     if ($PSCmdlet.ShouldProcess("$Scope env", "Set $Name=$Value")) {
         [Environment]::SetEnvironmentVariable($Name, $Value, $envTarget)
@@ -76,13 +73,12 @@ function Get-Env {
     User and Machine scopes also update the current session.
 .PARAMETER Name
     The environment variable name.
-.PARAMETER Permanent
-    Shorthand for -Scope User. Ignored if -Scope is also specified.
 .PARAMETER Scope
-    Process, User, or Machine. Defaults to Process.
+    User, Machine, or Process. Defaults to User (permanent).
+    Use Remove-TempEnv for temporary (process-only) variables.
 .EXAMPLE
-    Remove-Env -Name "TEMP_DEBUG" -Permanent
-    Remove-Env -Name "TEMP_DEBUG" -Scope Process
+    Remove-Env -Name "JAVA_HOME"
+    Remove-Env -Name "JAVA_HOME" -Scope Machine
 #>
 function Remove-Env {
     [CmdletBinding(SupportsShouldProcess)]
@@ -90,11 +86,9 @@ function Remove-Env {
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Name,
         [Parameter(Position=1)]
-        [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process',
-        [switch]$Permanent
+        [ValidateSet('User', 'Machine', 'Process')]
+        [string]$Scope = 'User'
     )
-    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) { $Scope = 'User' }
     $envTarget = switch ($Scope) { 'Machine' { 'Machine' } 'User' { 'User' } default { 'Process' } }
     if ($PSCmdlet.ShouldProcess("$Scope env", "Remove $Name")) {
         [Environment]::SetEnvironmentVariable($Name, $null, $envTarget)
