@@ -10,14 +10,12 @@ $stampFile = Join-Path $dataDir 'last_update_check'
 $now = Get-Date
 
 # Only check once per day
-<# TEMPORARILY DISABLED FOR TESTING
 if (Test-Path $stampFile) {
     try {
         $lastCheck = [DateTime]::Parse((Get-Content $stampFile -Raw -ErrorAction Stop).Trim())
         if (($now - $lastCheck).TotalHours -lt 24) { return }
     } catch { }
 }
-#>
 
 if (-not (Test-Path $dataDir)) {
     New-Item -ItemType Directory -Path $dataDir -Force -ErrorAction SilentlyContinue | Out-Null
