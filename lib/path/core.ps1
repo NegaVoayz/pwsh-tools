@@ -9,14 +9,14 @@
 .PARAMETER Path
     The directory path to add. Can be relative (will be resolved).
 .PARAMETER Scope
-    Process, User, or Machine. Defaults to Process.
-.PARAMETER Permanent
-    Shorthand for -Scope User. Ignored if -Scope is also specified.
+    User, Machine, or Process. Defaults to User (permanent).
+    Use Set-TempPath for temporary (process-only) entries.
 .PARAMETER Position
     Where to insert: Beginning (prepend) or End (append). Default is End.
 .EXAMPLE
-    Add-Path -Path "C:\my-tools\bin" -Permanent
-    Add-Path -Path "C:\my-tools\bin" -Scope User -Position Beginning
+    Add-Path -Path "C:\my-tools\bin"
+    Add-Path -Path "C:\my-tools\bin" -Scope Machine
+    Add-Path -Path "C:\my-tools\bin" -Position Beginning
 #>
 function Add-Path {
     [CmdletBinding(SupportsShouldProcess)]
@@ -24,13 +24,11 @@ function Add-Path {
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path,
         [Parameter(Position=1)]
-        [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process',
-        [switch]$Permanent,
+        [ValidateSet('User', 'Machine', 'Process')]
+        [string]$Scope = 'User',
         [ValidateSet('Beginning', 'End')]
         [string]$Position = 'End'
     )
-    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) { $Scope = 'User' }
     $resolved = _Resolve-PathEntry $Path
     $current  = _Get-PathEntries -Scope $Scope
     $alreadyExists = $current | Where-Object {
@@ -52,13 +50,11 @@ function Add-Path {
     Matching is case-insensitive with path normalization.
 .PARAMETER Path
     The directory path to remove.
-.PARAMETER Permanent
-    Shorthand for -Scope User. Ignored if -Scope is also specified.
 .PARAMETER Scope
-    Process, User, or Machine. Defaults to Process.
+    User, Machine, or Process. Defaults to User (permanent).
 .EXAMPLE
-    Remove-Path -Path "C:\my-tools\bin" -Permanent
-    Remove-Path -Path "C:\my-tools\bin" -Scope User
+    Remove-Path -Path "C:\my-tools\bin"
+    Remove-Path -Path "C:\my-tools\bin" -Scope Machine
 #>
 function Remove-Path {
     [CmdletBinding(SupportsShouldProcess)]
@@ -66,11 +62,9 @@ function Remove-Path {
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Path,
         [Parameter(Position=1)]
-        [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process',
-        [switch]$Permanent
+        [ValidateSet('User', 'Machine', 'Process')]
+        [string]$Scope = 'User'
     )
-    if ($Permanent -and -not $PSBoundParameters.ContainsKey('Scope')) { $Scope = 'User' }
     $current  = _Get-PathEntries -Scope $Scope
     $target   = _Normalize-PathEntry $Path
     $count    = $current.Count
