@@ -138,3 +138,45 @@ function Clear-TempEnv {
         Write-Host "  Cleared $count temp env tracking entries(s)" -ForegroundColor Green
     }
 }
+
+<#
+.SYNOPSIS
+    Removes temporary environment variables from tracking and the session.
+.DESCRIPTION
+    Removes the specified temp environment variable from both the
+    tracking list and the process scope. Unlike Remove-Env, this also
+    cleans up the temp tracking entry. Unlike Clear-TempEnv, this
+    actually removes the variable value.
+.PARAMETER Name
+    The temp env var name(s) to remove.
+.EXAMPLE
+    Remove-TempEnv DEBUG_MODE
+    Remove-TempEnv API_URL, DEBUG_MODE
+#>
+function Remove-TempEnv {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [string[]]$Name
+    )
+
+    $removed = 0
+    foreach ($n in $Name) {
+        $wasTracked = $script:_TempEnvVars.ContainsKey($n)
+        if (-not $wasTracked) {
+            Write-Warning "'$n' is not a tracked temp env var."
+            continue
+        }
+
+        if ($PSCmdlet.ShouldProcess("Process env + tracking", "Remove $n")) {
+            [Environment]::SetEnvironmentVariable($n, $null, 'Process')
+            $null = $script:_TempEnvVars.Remove($n)
+            Write-Host "  Removed temp env: $n" -ForegroundColor Green
+            $removed++
+        }
+    }
+
+    if ($removed -gt 0) {
+        Write-Verbose "Removed $removed temp env var(s)"
+    }
+}

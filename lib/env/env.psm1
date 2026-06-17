@@ -16,6 +16,7 @@ Export-ModuleMember -Function @(
     'Remove-Env',
     'Set-TempEnv',
     'Get-TempEnv',
+    'Remove-TempEnv',
     'Save-Env',
     'Clear-TempEnv',
     'Set-TempPath',
