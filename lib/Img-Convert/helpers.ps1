@@ -186,7 +186,8 @@ Install via: dotnet add package SixLabors.ImageSharp
     try {
         $imageSharp = [SixLabors.ImageSharp.Image]::Load($Path)
         $ms = New-Object System.IO.MemoryStream
-        $imageSharp.SaveAsPng($ms)
+        $pngEncoder = New-Object SixLabors.ImageSharp.Formats.Png.PngEncoder
+        $imageSharp.Save($ms, $pngEncoder)
         $ms.Position = 0
         $bitmap = New-Object System.Drawing.Bitmap($ms)
         return $bitmap
