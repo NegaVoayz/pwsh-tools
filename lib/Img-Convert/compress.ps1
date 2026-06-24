@@ -118,66 +118,53 @@ function Compress-Image {
             $path = if ($PathOrImage -is [System.IO.FileInfo]) { $PathOrImage.FullName }
                     else { [string]$PathOrImage }
             $files = _Get-FileList @($path)
-            foreach ($file in $files) {
+            if (-not $files) { return }
+
+            if ($fileOutputPath -and $files.Count -gt 1) {
+                throw "Cannot use a file path for -OutputPath with multiple input paths."
+            }
+
+            # Prepare simple-typed variables for ForEach-Object -Parallel
+            $fmtStr      = $Format
+            $qVal        = if ($hasQuality) { $Quality } else { 0 }
+            $hasQ        = [bool]$hasQuality
+            $outPathStr  = $OutputPath
+            $suffixStr   = $Suffix
+            $forceBool   = [bool]$Force
+            $inPlaceBool = [bool]$InPlace
+            $fileOutStr  = $fileOutputPath
+            $helpersPath = Join-Path $PSScriptRoot 'helpers.ps1'
+            $processPath = Join-Path $PSScriptRoot 'process.ps1'
+
+            if ($PSVersionTable.PSEdition -eq 'Core') {
+                $batchResults = $files | ForEach-Object -Parallel {
+                    Add-Type -AssemblyName System.Drawing
+                    . $using:helpersPath
+                    . $using:processPath
+                    Invoke-CompressFile -Path $_.FullName -Format $using:fmtStr `
+                        -Quality $using:qVal -OutputPath $using:outPathStr `
+                        -Suffix $using:suffixStr -Force:$using:forceBool `
+                        -InPlace:$using:inPlaceBool -FileOutputPath $using:fileOutStr `
+                        -HasQuality:$using:hasQ
+                } -ThrottleLimit ([Environment]::ProcessorCount)
+            } else {
+                $batchResults = foreach ($file in $files) {
+                    Invoke-CompressFile -Path $file.FullName -Format $fmtStr `
+                        -Quality $qVal -OutputPath $outPathStr -Suffix $suffixStr `
+                        -Force:$forceBool -InPlace:$inPlaceBool `
+                        -FileOutputPath $fileOutStr -HasQuality:$hasQ
+                }
+            }
+
+            foreach ($r in $batchResults) {
+                if (-not $r) { continue }
                 $count++
-                if ($fileOutputPath -and $count -gt 1) {
-                    throw "Cannot use a file path for -OutputPath with multiple input paths."
-                }
-
-                $inExt = [System.IO.Path]::GetExtension($file.FullName)
-                if (-not (_Get-ImageFormat $inExt) -and -not (_Is-WebPExtension $inExt)) {
-                    Write-Warning "Unsupported format, skipping: $($file.FullName)"; continue
-                }
-
-                $outFmt = if ($Format) { _Normalize-FormatName $Format }
-                          else { _Normalize-FormatName $inExt }
-                if ($hasQuality) {
-                    try {
-                        _Assert-QualityFormat $outFmt
-                    } catch {
-                        Write-Warning "Skipping '$($file.FullName)': $_"
-                        continue
-                    }
-                }
-
-                $effectiveOutputPath = if ($fileOutputPath -and $count -eq 1) { $fileOutputPath }
-                                      elseif ($InPlace) { $file.DirectoryName }
-                                      else { $OutputPath }
-                $effectiveSuffix = if ($InPlace) { '' } else { $Suffix }
-                $effectiveForce = $Force -or $InPlace
-                $quality = if ($hasQuality) { $Quality } else { 0 }
-
-                $bitmap = $null; $image = $null
-                try {
-                    $image = _Read-ImageFile $file.FullName
-                    $info = _Build-CompressResult $image $file.FullName $Format
-                    $bitmap = $info.Bitmap
-                    $image.Dispose(); $image = $null
-                    $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
-                    if ($Format) { $imgObj.Format = $outFmt }
-
-                    if ($effectiveOutputPath -or $InPlace) {
-                        $inSize = (Get-Item -LiteralPath $file.FullName).Length
-                        $r = _Save-ImageObject -ImageObject $imgObj `
-                            -OutputPath $effectiveOutputPath -Quality $quality `
-                            -OutExt $info.OutExt -Force:$effectiveForce -Suffix $effectiveSuffix
-                        if ($r) {
-                        $results += $r; $saved++
-                        $totalIn  += $inSize
-                        $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
-                        if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
-                            Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
-                        }
-                    }; $bitmap = $null
-                    } else {
-                        Write-Host "  $($file.FullName) -> $($imgObj.Format) (pipeline)"
-                        $imgObj; $bitmap = $null
-                    }
-                } catch {
-                    Write-Error "Failed to process '$($file.FullName)': $_"
-                } finally {
-                    if ($bitmap) { $bitmap.Dispose() }
-                    if ($image)  { $image.Dispose() }
+                if ($r.OutputPath) {
+                    $results += $r; $saved++
+                    $totalIn  += $r.InputSize
+                    $totalOut += $r.OutputSize
+                } else {
+                    # Pipeline mode — object emitted by Invoke-CompressFile
                 }
             }
         }

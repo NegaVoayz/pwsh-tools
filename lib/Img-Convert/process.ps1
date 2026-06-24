@@ -87,3 +87,133 @@ function _Build-CompressResult {
     return @{ Bitmap = $b; OutExt = $ext; OutFormat = $fmt }
 }
 
+# -- Per-file processing wrappers (exported, usable from ForEach-Object -Parallel) --
+
+# Processes a single file through the resize pipeline and saves the result.
+# Returns a result object with InputPath, OutputPath, InputSize, OutputSize,
+# or $null if the file was skipped.
+function Invoke-ResizeFile {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [int[]]$Size,
+        [string]$OutputPath,
+        [string]$Suffix,
+        [switch]$Force,
+        [switch]$InPlace,
+        [string]$FileOutputPath
+    )
+    $file = Get-Item -LiteralPath $Path -ErrorAction Stop
+    $inExt = [System.IO.Path]::GetExtension($file.FullName)
+    if (-not (_Get-ImageFormat $inExt) -and -not (_Is-WebPExtension $inExt)) {
+        Write-Warning "Unsupported format, skipping: $($file.FullName)"; return $null
+    }
+
+    $effectiveOutputPath = if ($FileOutputPath) { $FileOutputPath }
+                           elseif ($InPlace) { $file.DirectoryName }
+                           else { $OutputPath }
+    $effectiveSuffix = if ($InPlace) { '' } else { $Suffix }
+    $effectiveForce = $Force -or $InPlace
+
+    $inSize = $file.Length
+    $bitmap = $null; $image = $null
+    try {
+        $image = _Read-ImageFile $file.FullName
+        $info = _Build-ResizeResult $image $file.FullName $Size
+        $bitmap = $info.Bitmap
+        $image.Dispose(); $image = $null
+        $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
+
+        if ($effectiveOutputPath -or $InPlace) {
+            $r = _Save-ImageObject -ImageObject $imgObj `
+                -OutputPath $effectiveOutputPath -Quality 0 -OutExt $info.OutExt `
+                -Force:$effectiveForce -Suffix $effectiveSuffix
+            if (-not $r) { $bitmap = $null; return $null }
+            $bitmap = $null
+            $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
+            if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
+                Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
+            }
+            return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
+                                      InputSize = $inSize; OutputSize = $outSize }
+        } else {
+            Write-Host "  $($file.FullName) -> [$($imgObj.Width)x$($imgObj.Height)] (pipeline)"
+            $imgObj; $bitmap = $null
+            return [PSCustomObject]@{ InputPath = $file.FullName; OutputPath = $null;
+                                      InputSize = $inSize; OutputSize = 0; Pipeline = $true }
+        }
+    } finally {
+        if ($bitmap) { $bitmap.Dispose() }
+        if ($image)  { $image.Dispose() }
+    }
+}
+
+# Processes a single file through the compress pipeline and saves the result.
+# Returns a result object with InputPath, OutputPath, InputSize, OutputSize,
+# or $null if the file was skipped.
+function Invoke-CompressFile {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$Format,
+        [int]$Quality,
+        [string]$OutputPath,
+        [string]$Suffix,
+        [switch]$Force,
+        [switch]$InPlace,
+        [string]$FileOutputPath,
+        [switch]$HasQuality
+    )
+    $file = Get-Item -LiteralPath $Path -ErrorAction Stop
+    $inExt = [System.IO.Path]::GetExtension($file.FullName)
+    if (-not (_Get-ImageFormat $inExt) -and -not (_Is-WebPExtension $inExt)) {
+        Write-Warning "Unsupported format, skipping: $($file.FullName)"; return $null
+    }
+
+    $outFmt = if ($Format) { _Normalize-FormatName $Format }
+              else { _Normalize-FormatName $inExt }
+    if ($HasQuality) {
+        try { _Assert-QualityFormat $outFmt } catch {
+            Write-Warning "Skipping '$($file.FullName)': $_"; return $null
+        }
+    }
+
+    $effectiveOutputPath = if ($FileOutputPath) { $FileOutputPath }
+                           elseif ($InPlace) { $file.DirectoryName }
+                           else { $OutputPath }
+    $effectiveSuffix = if ($InPlace) { '' } else { $Suffix }
+    $effectiveForce = $Force -or $InPlace
+    $quality = if ($HasQuality) { $Quality } else { 0 }
+
+    $inSize = $file.Length
+    $bitmap = $null; $image = $null
+    try {
+        $image = _Read-ImageFile $file.FullName
+        $info = _Build-CompressResult $image $file.FullName $Format
+        $bitmap = $info.Bitmap
+        $image.Dispose(); $image = $null
+        $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
+        if ($Format) { $imgObj.Format = $outFmt }
+
+        if ($effectiveOutputPath -or $InPlace) {
+            $r = _Save-ImageObject -ImageObject $imgObj `
+                -OutputPath $effectiveOutputPath -Quality $quality `
+                -OutExt $info.OutExt -Force:$effectiveForce -Suffix $effectiveSuffix
+            if (-not $r) { $bitmap = $null; return $null }
+            $bitmap = $null
+            $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
+            if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
+                Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
+            }
+            return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
+                                      InputSize = $inSize; OutputSize = $outSize }
+        } else {
+            Write-Host "  $($file.FullName) -> $($imgObj.Format) (pipeline)"
+            $imgObj; $bitmap = $null
+            return [PSCustomObject]@{ InputPath = $file.FullName; OutputPath = $null;
+                                      InputSize = $inSize; OutputSize = 0; Pipeline = $true }
+        }
+    } finally {
+        if ($bitmap) { $bitmap.Dispose() }
+        if ($image)  { $image.Dispose() }
+    }
+}
+

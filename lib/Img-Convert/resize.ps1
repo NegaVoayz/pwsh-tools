@@ -115,50 +115,50 @@ function Resize-Image {
             $path = if ($PathOrImage -is [System.IO.FileInfo]) { $PathOrImage.FullName }
                     else { [string]$PathOrImage }
             $files = _Get-FileList @($path)
-            foreach ($file in $files) {
+            if (-not $files) { return }
+
+            if ($fileOutputPath -and $files.Count -gt 1) {
+                throw "Cannot use a file path for -OutputPath with multiple input paths."
+            }
+
+            # Prepare simple-typed variables for ForEach-Object -Parallel
+            $sizeArr     = $Size
+            $outPathStr  = $OutputPath
+            $suffixStr   = $Suffix
+            $forceBool   = [bool]$Force
+            $inPlaceBool = [bool]$InPlace
+            $fileOutStr  = $fileOutputPath
+            $helpersPath = Join-Path $PSScriptRoot 'helpers.ps1'
+            $processPath = Join-Path $PSScriptRoot 'process.ps1'
+
+            if ($PSVersionTable.PSEdition -eq 'Core') {
+                $batchResults = $files | ForEach-Object -Parallel {
+                    Add-Type -AssemblyName System.Drawing
+                    . $using:helpersPath
+                    . $using:processPath
+                    Invoke-ResizeFile -Path $_.FullName -Size $using:sizeArr `
+                        -OutputPath $using:outPathStr -Suffix $using:suffixStr `
+                        -Force:$using:forceBool -InPlace:$using:inPlaceBool `
+                        -FileOutputPath $using:fileOutStr
+                } -ThrottleLimit ([Environment]::ProcessorCount)
+            } else {
+                $batchResults = foreach ($file in $files) {
+                    Invoke-ResizeFile -Path $file.FullName -Size $sizeArr `
+                        -OutputPath $outPathStr -Suffix $suffixStr `
+                        -Force:$forceBool -InPlace:$inPlaceBool `
+                        -FileOutputPath $fileOutStr
+                }
+            }
+
+            foreach ($r in $batchResults) {
+                if (-not $r) { continue }
                 $count++
-                if ($fileOutputPath -and $count -gt 1) {
-                    throw "Cannot use a file path for -OutputPath with multiple input paths."
-                }
-                $effectiveOutputPath = if ($fileOutputPath -and $count -eq 1) { $fileOutputPath }
-                                      elseif ($InPlace) { $file.DirectoryName }
-                                      else { $OutputPath }
-                $effectiveSuffix = if ($InPlace) { '' } else { $Suffix }
-                $effectiveForce = $Force -or $InPlace
-                if ($effectiveOutputPath -and $fileOutputPath -and $PathOrImage -isnot [System.IO.FileInfo]) {
-                    $effectiveOutputPath = $OutputPath
-                }
-
-                $bitmap = $null
-                try {
-                    $image = _Read-ImageFile $file.FullName
-                    $info = _Build-ResizeResult $image $file.FullName $Size
-                    $bitmap = $info.Bitmap
-                    $image.Dispose(); $image = $null
-                    $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
-
-                    if ($effectiveOutputPath -or $InPlace) {
-                        $inSize = (Get-Item -LiteralPath $file.FullName).Length
-                        $r = _Save-ImageObject -ImageObject $imgObj `
-                            -OutputPath $effectiveOutputPath -Quality 0 -OutExt $info.OutExt `
-                            -Force:$effectiveForce -Suffix $effectiveSuffix
-                        if ($r) {
-                            $results += $r; $saved++
-                            $totalIn  += $inSize
-                            $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
-                            if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
-                                Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
-                            }
-                        }; $bitmap = $null
-                    } else {
-                        Write-Host "  $($file.FullName) -> [$($imgObj.Width)x$($imgObj.Height)] (pipeline)"
-                        $imgObj; $bitmap = $null
-                    }
-                } catch {
-                    Write-Error "Failed to process '$($file.FullName)': $_"
-                } finally {
-                    if ($bitmap) { $bitmap.Dispose() }
-                    if ($image)  { $image.Dispose() }
+                if ($r.OutputPath) {
+                    $results += $r; $saved++
+                    $totalIn  += $r.InputSize
+                    $totalOut += $r.OutputSize
+                } else {
+                    # Pipeline mode — object emitted by Invoke-ResizeFile
                 }
             }
         }
