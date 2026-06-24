@@ -96,11 +96,12 @@ function Compress-Image {
                     if ($ext -eq '.jpeg') { $ext = '.jpg' }
                     if ($ext -eq '.icon') { $ext = '.ico' }
                     $q = if ($hasQuality) { $Quality } else { 0 }
+                    $inSize = (Get-Item -LiteralPath $imgObj.SourcePath).Length
                     $r = _Save-ImageObject -ImageObject $imgObj -OutputPath $outDir `
                         -Quality $q -OutExt $ext -Force:($Force -or $InPlace) -Suffix $sfx
                     if ($r) {
                         $results += $r; $saved++
-                        $totalIn  += (Get-Item -LiteralPath $r.InputPath).Length
+                        $totalIn  += $inSize
                         $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
                         if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
                             Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
@@ -156,12 +157,13 @@ function Compress-Image {
                     if ($Format) { $imgObj.Format = $outFmt }
 
                     if ($effectiveOutputPath -or $InPlace) {
+                        $inSize = (Get-Item -LiteralPath $file.FullName).Length
                         $r = _Save-ImageObject -ImageObject $imgObj `
                             -OutputPath $effectiveOutputPath -Quality $quality `
                             -OutExt $info.OutExt -Force:$effectiveForce -Suffix $effectiveSuffix
                         if ($r) {
                         $results += $r; $saved++
-                        $totalIn  += (Get-Item -LiteralPath $r.InputPath).Length
+                        $totalIn  += $inSize
                         $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
                         if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
                             Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue

@@ -92,11 +92,12 @@ function Resize-Image {
                     $ext = '.' + $imgObj.Format.ToLowerInvariant()
                     if ($ext -eq '.jpeg') { $ext = '.jpg' }
                     if ($ext -eq '.icon') { $ext = '.ico' }
+                    $inSize = (Get-Item -LiteralPath $imgObj.SourcePath).Length
                     $r = _Save-ImageObject -ImageObject $imgObj -OutputPath $outDir `
                         -Quality 0 -OutExt $ext -Force:($Force -or $InPlace) -Suffix $sfx
                     if ($r) {
                         $results += $r; $saved++
-                        $totalIn  += (Get-Item -LiteralPath $r.InputPath).Length
+                        $totalIn  += $inSize
                         $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
                         if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
                             Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
@@ -137,12 +138,13 @@ function Resize-Image {
                     $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
 
                     if ($effectiveOutputPath -or $InPlace) {
+                        $inSize = (Get-Item -LiteralPath $file.FullName).Length
                         $r = _Save-ImageObject -ImageObject $imgObj `
                             -OutputPath $effectiveOutputPath -Quality 0 -OutExt $info.OutExt `
                             -Force:$effectiveForce -Suffix $effectiveSuffix
                         if ($r) {
                             $results += $r; $saved++
-                            $totalIn  += (Get-Item -LiteralPath $r.InputPath).Length
+                            $totalIn  += $inSize
                             $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
                             if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
                                 Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
