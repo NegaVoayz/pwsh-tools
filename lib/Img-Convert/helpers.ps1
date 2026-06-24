@@ -211,7 +211,7 @@ Place SixLabors.ImageSharp.dll in '$PSScriptRoot\deps\' or in the module directo
 Install via: dotnet add package SixLabors.ImageSharp
 "@
     }
-    $ms = $null; $imageSharp = $null
+    $ms = $null; $imageSharp = $null; $fs = $null
     try {
         $ms = New-Object System.IO.MemoryStream
         $Bitmap.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
@@ -221,10 +221,12 @@ Install via: dotnet add package SixLabors.ImageSharp
         if ($Quality -gt 0) {
             $encoder.Quality = $Quality
         }
-        $imageSharp.SaveAsWebp($OutputPath, $encoder)
+        $fs = [System.IO.File]::OpenWrite($OutputPath)
+        $imageSharp.Save($fs, $encoder)
     } finally {
         if ($ms)         { $ms.Dispose() }
         if ($imageSharp) { $imageSharp.Dispose() }
+        if ($fs)         { $fs.Dispose() }
     }
 }
 
