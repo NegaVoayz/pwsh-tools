@@ -96,7 +96,7 @@ function Resize-Image {
                         -Quality 0 -OutExt $ext -Force:($Force -or $InPlace) -Suffix $sfx
                     if ($r) {
                         $results += $r; $saved++
-                        $totalIn  += $imgObj.Width * $imgObj.Height * 4
+                        $totalIn  += (Get-Item -LiteralPath $r.InputPath).Length
                         $totalOut += (Get-Item -LiteralPath $r.OutputPath).Length
                         if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
                             Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
