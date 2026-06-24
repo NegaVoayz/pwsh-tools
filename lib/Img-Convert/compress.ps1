@@ -12,11 +12,11 @@
     File path(s), FileInfo object(s), or ImageObject(s) from the pipeline.
     Wildcards supported for file paths.
 .PARAMETER Quality
-    JPEG compression quality from 0 (lowest) to 100 (highest).
-    Only valid when output format is JPEG. Default: 90 for JPEG output.
-    Ignored (with an error) for non-JPEG output formats.
+    JPEG/WebP compression quality from 0 (lowest) to 100 (highest).
+    Only valid when output format is JPEG or WebP.
+    Ignored (with an error) for other output formats.
 .PARAMETER Format
-    Output image format: jpg, jpeg, png, gif, bmp, tiff, ico, wmf.
+    Output image format: jpg, jpeg, png, gif, bmp, tiff, ico, wmf, webp.
     Default: same format as the input image.
 .PARAMETER OutputPath
     Directory or file path for output. When a directory, all output files
@@ -47,7 +47,7 @@ function Compress-Image {
         [ValidateRange(0, 100)][int]$Quality,
 
         [Parameter(Position=2)]
-        [ValidateSet('jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'ico', 'wmf',
+        [ValidateSet('jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'ico', 'wmf', 'webp',
                      IgnoreCase)][string]$Format,
 
         [string]$OutputPath,
@@ -63,7 +63,7 @@ function Compress-Image {
         $hasQuality = $PSBoundParameters.ContainsKey('Quality')
 
         if ($hasQuality -and $PSBoundParameters.ContainsKey('Format')) {
-            _Assert-JpegFormat $Format
+            _Assert-QualityFormat $Format
         }
 
         if ($EnableSuffix -and -not $PSBoundParameters.ContainsKey('Suffix')) {
@@ -86,7 +86,7 @@ function Compress-Image {
             try {
                 $outFmt = if ($Format) { _Normalize-FormatName $Format }
                           else { $PathOrImage.Format }
-                if ($hasQuality) { _Assert-JpegFormat $outFmt }
+                if ($hasQuality) { _Assert-QualityFormat $outFmt }
                 $imgObj = $PathOrImage
                 if ($Format) { $imgObj.Format = $outFmt }
                 if ($OutputPath -or $InPlace) {
@@ -124,16 +124,17 @@ function Compress-Image {
                 }
 
                 $inExt = [System.IO.Path]::GetExtension($file.FullName)
-                if (-not (_Get-ImageFormat $inExt)) {
+                if (-not (_Get-ImageFormat $inExt) -and -not (_Is-WebPExtension $inExt)) {
                     Write-Warning "Unsupported format, skipping: $($file.FullName)"; continue
                 }
 
                 $outFmt = if ($Format) { _Normalize-FormatName $Format }
                           else { _Normalize-FormatName $inExt }
                 if ($hasQuality) {
-                    $fmtObj = _Get-ImageFormat $outFmt
-                    if ($fmtObj -and $fmtObj.Guid -ne [System.Drawing.Imaging.ImageFormat]::Jpeg.Guid) {
-                        Write-Warning "Skipping '$($file.FullName)': -Quality only valid for JPEG output."
+                    try {
+                        _Assert-QualityFormat $outFmt
+                    } catch {
+                        Write-Warning "Skipping '$($file.FullName)': $_"
                         continue
                     }
                 }
@@ -147,7 +148,7 @@ function Compress-Image {
 
                 $bitmap = $null; $image = $null
                 try {
-                    $image = [System.Drawing.Image]::FromFile($file.FullName)
+                    $image = _Read-ImageFile $file.FullName
                     $info = _Build-CompressResult $image $file.FullName $Format
                     $bitmap = $info.Bitmap
                     $image.Dispose(); $image = $null

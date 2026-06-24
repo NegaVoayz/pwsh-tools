@@ -22,7 +22,8 @@ function _Get-FileList {
         }
         if (-not $found) { Write-Warning "No files matched: $item"; continue }
         foreach ($f in $found) {
-            if (-not (_Get-ImageFormat ([System.IO.Path]::GetExtension($f.Name)))) {
+            $ext = [System.IO.Path]::GetExtension($f.Name)
+            if (-not (_Get-ImageFormat $ext) -and -not (_Is-WebPExtension $ext)) {
                 Write-Warning "Unsupported format, skipping: $($f.FullName)"
                 continue
             }
@@ -32,24 +33,30 @@ function _Get-FileList {
     return $files
 }
 
-# Throws if the given format name does not resolve to JPEG.
-function _Assert-JpegFormat {
+# Throws if the given format name does not support quality encoding (JPEG or WebP).
+function _Assert-QualityFormat {
     param([string]$FormatName)
+    if (_Is-WebPExtension $FormatName) { return }
     $fmt = _Get-ImageFormat $FormatName
     if ($fmt -and $fmt.Guid -ne [System.Drawing.Imaging.ImageFormat]::Jpeg.Guid) {
-        throw '-Quality can only be used with JPEG output format.'
+        throw '-Quality can only be used with JPEG or WebP output format.'
     }
 }
 
-# Filters file list to only JPEG-compatible formats. Warns on skipped files.
+# Filters file list to quality-compatible formats (JPEG, WebP). Warns on skipped files.
 function _Filter-QualityFiles {
     param([System.IO.FileInfo[]]$Files)
     $valid = @()
     foreach ($f in $Files) {
-        $fmt = _Normalize-FormatName $f.Extension
+        $ext = $f.Extension
+        if (_Is-WebPExtension $ext) {
+            $valid += $f
+            continue
+        }
+        $fmt = _Normalize-FormatName $ext
         $fmtObj = _Get-ImageFormat $fmt
         if ($fmtObj -and $fmtObj.Guid -ne [System.Drawing.Imaging.ImageFormat]::Jpeg.Guid) {
-            Write-Warning "Skipping '$($f.FullName)': -Quality only valid for JPEG output."
+            Write-Warning "Skipping '$($f.FullName)': -Quality only valid for JPEG or WebP output."
         } else { $valid += $f }
     }
     return $valid

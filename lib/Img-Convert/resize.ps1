@@ -130,7 +130,7 @@ function Resize-Image {
 
                 $bitmap = $null
                 try {
-                    $image = [System.Drawing.Image]::FromFile($file.FullName)
+                    $image = _Read-ImageFile $file.FullName
                     $info = _Build-ResizeResult $image $file.FullName $Size
                     $bitmap = $info.Bitmap
                     $image.Dispose(); $image = $null
