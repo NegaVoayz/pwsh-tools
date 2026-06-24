@@ -123,24 +123,17 @@ function Invoke-ResizeFile {
         $image.Dispose(); $image = $null
         $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
 
-        if ($effectiveOutputPath -or $InPlace) {
-            $r = _Save-ImageObject -ImageObject $imgObj `
-                -OutputPath $effectiveOutputPath -Quality 0 -OutExt $info.OutExt `
-                -Force:$effectiveForce -Suffix $effectiveSuffix
-            if (-not $r) { $bitmap = $null; return $null }
-            $bitmap = $null
-            $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
-            if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
-                Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
-            }
-            return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
-                                      InputSize = $inSize; OutputSize = $outSize }
-        } else {
-            Write-Host "  $($file.FullName) -> [$($imgObj.Width)x$($imgObj.Height)] (pipeline)"
-            $imgObj; $bitmap = $null
-            return [PSCustomObject]@{ InputPath = $file.FullName; OutputPath = $null;
-                                      InputSize = $inSize; OutputSize = 0; Pipeline = $true }
+        $r = _Save-ImageObject -ImageObject $imgObj `
+            -OutputPath $effectiveOutputPath -Quality 0 -OutExt $info.OutExt `
+            -Force:$effectiveForce -Suffix $effectiveSuffix
+        if (-not $r) { $bitmap = $null; return $null }
+        $bitmap = $null
+        $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
+        if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
+            Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
         }
+        return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
+                                  InputSize = $inSize; OutputSize = $outSize }
     } finally {
         if ($bitmap) { $bitmap.Dispose() }
         if ($image)  { $image.Dispose() }
@@ -193,24 +186,17 @@ function Invoke-CompressFile {
         $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
         if ($Format) { $imgObj.Format = $outFmt }
 
-        if ($effectiveOutputPath -or $InPlace) {
-            $r = _Save-ImageObject -ImageObject $imgObj `
-                -OutputPath $effectiveOutputPath -Quality $quality `
-                -OutExt $info.OutExt -Force:$effectiveForce -Suffix $effectiveSuffix
-            if (-not $r) { $bitmap = $null; return $null }
-            $bitmap = $null
-            $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
-            if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
-                Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
-            }
-            return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
-                                      InputSize = $inSize; OutputSize = $outSize }
-        } else {
-            Write-Host "  $($file.FullName) -> $($imgObj.Format) (pipeline)"
-            $imgObj; $bitmap = $null
-            return [PSCustomObject]@{ InputPath = $file.FullName; OutputPath = $null;
-                                      InputSize = $inSize; OutputSize = 0; Pipeline = $true }
+        $r = _Save-ImageObject -ImageObject $imgObj `
+            -OutputPath $effectiveOutputPath -Quality $quality `
+            -OutExt $info.OutExt -Force:$effectiveForce -Suffix $effectiveSuffix
+        if (-not $r) { $bitmap = $null; return $null }
+        $bitmap = $null
+        $outSize = (Get-Item -LiteralPath $r.OutputPath).Length
+        if ($InPlace -and $r.OutputPath -ne $r.InputPath) {
+            Remove-Item -LiteralPath $r.InputPath -Force -ErrorAction SilentlyContinue
         }
+        return [PSCustomObject]@{ InputPath = $r.InputPath; OutputPath = $r.OutputPath;
+                                  InputSize = $inSize; OutputSize = $outSize }
     } finally {
         if ($bitmap) { $bitmap.Dispose() }
         if ($image)  { $image.Dispose() }

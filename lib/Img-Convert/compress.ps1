@@ -124,47 +124,68 @@ function Compress-Image {
                 throw "Cannot use a file path for -OutputPath with multiple input paths."
             }
 
-            # Prepare simple-typed variables for ForEach-Object -Parallel
-            $fmtStr      = $Format
-            $qVal        = if ($hasQuality) { $Quality } else { 0 }
-            $hasQ        = [bool]$hasQuality
-            $outPathStr  = $OutputPath
-            $suffixStr   = $Suffix
-            $forceBool   = [bool]$Force
-            $inPlaceBool = [bool]$InPlace
-            $fileOutStr  = $fileOutputPath
-            $helpersPath = Join-Path $PSScriptRoot 'helpers.ps1'
-            $processPath = Join-Path $PSScriptRoot 'process.ps1'
+            if ($OutputPath -or $InPlace) {
+                # Save mode — batch process (parallel in pwsh 7+)
+                $fmtStr      = $Format
+                $qVal        = if ($hasQuality) { $Quality } else { 0 }
+                $hasQ        = [bool]$hasQuality
+                $outPathStr  = $OutputPath
+                $suffixStr   = $Suffix
+                $forceBool   = [bool]$Force
+                $inPlaceBool = [bool]$InPlace
+                $fileOutStr  = $fileOutputPath
+                $helpersPath = Join-Path $PSScriptRoot 'helpers.ps1'
+                $processPath = Join-Path $PSScriptRoot 'process.ps1'
 
-            if ($PSVersionTable.PSEdition -eq 'Core') {
-                $batchResults = $files | ForEach-Object -Parallel {
-                    Add-Type -AssemblyName System.Drawing
-                    . $using:helpersPath
-                    . $using:processPath
-                    Invoke-CompressFile -Path $_.FullName -Format $using:fmtStr `
-                        -Quality $using:qVal -OutputPath $using:outPathStr `
-                        -Suffix $using:suffixStr -Force:$using:forceBool `
-                        -InPlace:$using:inPlaceBool -FileOutputPath $using:fileOutStr `
-                        -HasQuality:$using:hasQ
-                } -ThrottleLimit ([Environment]::ProcessorCount)
-            } else {
-                $batchResults = foreach ($file in $files) {
-                    Invoke-CompressFile -Path $file.FullName -Format $fmtStr `
-                        -Quality $qVal -OutputPath $outPathStr -Suffix $suffixStr `
-                        -Force:$forceBool -InPlace:$inPlaceBool `
-                        -FileOutputPath $fileOutStr -HasQuality:$hasQ
-                }
-            }
-
-            foreach ($r in $batchResults) {
-                if (-not $r) { continue }
-                $count++
-                if ($r.OutputPath) {
-                    $results += $r; $saved++
-                    $totalIn  += $r.InputSize
-                    $totalOut += $r.OutputSize
+                if ($PSVersionTable.PSEdition -eq 'Core') {
+                    $batchResults = $files | ForEach-Object -Parallel {
+                        Add-Type -AssemblyName System.Drawing
+                        . $using:helpersPath
+                        . $using:processPath
+                        Invoke-CompressFile -Path $_.FullName -Format $using:fmtStr `
+                            -Quality $using:qVal -OutputPath $using:outPathStr `
+                            -Suffix $using:suffixStr -Force:$using:forceBool `
+                            -InPlace:$using:inPlaceBool -FileOutputPath $using:fileOutStr `
+                            -HasQuality:$using:hasQ
+                    } -ThrottleLimit ([Environment]::ProcessorCount)
                 } else {
-                    # Pipeline mode — object emitted by Invoke-CompressFile
+                    $batchResults = foreach ($file in $files) {
+                        Invoke-CompressFile -Path $file.FullName -Format $fmtStr `
+                            -Quality $qVal -OutputPath $outPathStr -Suffix $suffixStr `
+                            -Force:$forceBool -InPlace:$inPlaceBool `
+                            -FileOutputPath $fileOutStr -HasQuality:$hasQ
+                    }
+                }
+
+                foreach ($r in $batchResults) {
+                    if (-not $r) { continue }
+                    $count++
+                    if ($r.OutputPath) {
+                        $results += $r; $saved++
+                        $totalIn  += $r.InputSize
+                        $totalOut += $r.OutputSize
+                    }
+                }
+            } else {
+                # Pipeline mode — sequential foreach emitting ImageObjects
+                foreach ($file in $files) {
+                    $count++
+                    $bitmap = $null; $image = $null
+                    try {
+                        $image = _Read-ImageFile $file.FullName
+                        $info = _Build-CompressResult $image $file.FullName $Format
+                        $bitmap = $info.Bitmap
+                        $image.Dispose(); $image = $null
+                        $imgObj = _New-ImageObject -Bitmap $bitmap -SourcePath $file.FullName
+                        if ($Format) { $imgObj.Format = _Normalize-FormatName $Format }
+                        Write-Host "  $($file.FullName) -> $($imgObj.Format) (pipeline)"
+                        $imgObj; $bitmap = $null
+                    } catch {
+                        Write-Error "Failed to process '$($file.FullName)': $_"
+                    } finally {
+                        if ($bitmap) { $bitmap.Dispose() }
+                        if ($image)  { $image.Dispose() }
+                    }
                 }
             }
         }
