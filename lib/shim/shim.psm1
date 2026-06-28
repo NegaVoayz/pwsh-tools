@@ -27,10 +27,10 @@ try {
 
     if ($validConfigs.Count -gt 0) {
         $tracker = @{}
-        $null = _Install-ShimProxies -Configs $validConfigs -CollisionTracker $tracker
+        $null = _Install-LazyStubs -Configs $validConfigs -CollisionTracker $tracker
     }
 } catch {
-    Write-Warning "[shim] Failed to install shims: $_"
+    Write-Warning "[shim] Failed to install lazy stubs: $_"
 }
 
 Export-ModuleMember -Function @(

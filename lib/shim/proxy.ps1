@@ -1,7 +1,7 @@
 # shim/proxy.ps1 -- Proxy function generation and lifecycle.
 #
 # Private functions: _New-ShimProxy, _Install-ShimProxies,
-# _Uninstall-ShimProxies.
+# _Uninstall-ShimProxies, _New-LazyStub, _Install-LazyStubs.
 #
 # Public functions (exported): Install-Shim, Uninstall-Shim, Get-ShimConfig.
 #
@@ -119,6 +119,67 @@ function _Uninstall-ShimProxies {
     }
 
     return $removed
+}
+
+function _New-LazyStub {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ToolName,
+
+        [Parameter(Mandatory)]
+        [string]$PackageName
+    )
+
+    # Generates a lightweight stub function that resolves its package on
+    # first use. The stub calls Install-Shim to generate the real proxy
+    # (which replaces the stub), then re-invokes with the original args.
+    #
+    # Uses .GetNewClosure() to capture the parameter values into the
+    # returned scriptblock without retaining other scope variables.
+
+    return {
+        # Lazy-load: resolve this package, replacing all its stubs with
+        # real proxies. Install-Shim is a public exported function.
+        Install-Shim -Name $PackageName -Force
+
+        # Now re-invoke with the newly-installed real proxy
+        & $ToolName @args
+    }.GetNewClosure()
+}
+
+function _Install-LazyStubs {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object[]]$Configs,
+
+        [hashtable]$CollisionTracker = @{}
+    )
+
+    # Installs lightweight lazy-load stubs into the global scope for each
+    # tool in each valid config. Real proxies are generated on first use.
+
+    $installed = @()
+
+    foreach ($config in $Configs) {
+        if (-not $config.Valid) { continue }
+
+        foreach ($tool in $config.Tools) {
+            $toolName    = _Strip-ToolExtension $tool
+            $packageName = $config.Name
+
+            _Test-ConfigNameCollision -Existing $CollisionTracker `
+                -ToolName $toolName -SourceFile $config.SourceFile
+
+            $sb = _New-LazyStub -ToolName $toolName -PackageName $packageName
+            Set-Item -Path "function:global:$toolName" -Value $sb -Force
+            Write-Verbose "[shim] Lazy stub: $toolName (package: $packageName)"
+            $installed += [PSCustomObject]@{ Name = $toolName; Package = $packageName }
+        }
+    }
+
+    return $installed
 }
 
 # -- Public functions (exported) --
