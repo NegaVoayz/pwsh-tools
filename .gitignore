@@ -9,3 +9,7 @@ Thumbs.db
 *.log
 *.tmp
 ~$*
+
+# Shim: ignore vendored tool directories and local per-machine configs
+bin/*
+!bin/.gitkeep
