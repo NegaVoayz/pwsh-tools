@@ -18,9 +18,11 @@ cd C:\pwsh-tools
 . .\profile.ps1
 ```
 
-`setup.ps1` does three things:
+`setup.ps1` does four things:
+- Creates a `local` branch off `master` for your personal customizations
 - Adds a hook to your `$PROFILE` that calls `profile.ps1` on every shell start
 - Adds `C:\pwsh-tools\bin` to your persistent user `PATH`
+- Creates `custom.ps1` (gitignored) with defaults if it does not exist
 - All operations are idempotent — run it twice, nothing breaks
 
 ## What You Get
@@ -94,6 +96,58 @@ Set-Alias -Name ll -Value Get-ChildItem
 
 `custom.ps1` is sourced after the inline region, so it can override anything.
 Opt out of the startup hint: `$env:PWSH_TOOLS_QUIET = '1'` in your custom file.
+
+## Updating pwsh-tools
+
+The framework lives on your `local` branch (created by `setup.ps1`).
+Upstream changes are pulled from the `master` branch and merged automatically.
+
+```powershell
+# Pull the latest framework updates
+Update-PwshTools
+```
+
+`Update-PwshTools` does three things:
+1. Commits any local changes to tracked files via `Save-PwshToolsLocal`
+2. Fetches the latest `origin/master`
+3. Merges `origin/master` into your current branch
+
+### Saving local changes
+
+```powershell
+# Commit your customizations manually
+Save-PwshToolsLocal -Message "local: added my aliases"
+```
+
+`Save-PwshToolsLocal` stages changes to all tracked files (modifications,
+deletions, renames) and commits them. Untracked files (like new modules
+you are working on) are never added — add those manually with `git add`.
+
+### Merge conflicts
+
+If `Update-PwshTools` encounters a merge conflict, it will list the
+conflicted files and pause. Resolve conflicts manually:
+
+```powershell
+# Edit conflicted files (search for <<<<<<<)
+git add <resolved-file>
+git commit
+
+# Or abort the merge and go back:
+git merge --abort
+```
+
+Your local changes are always committed before the merge, so you can
+safely abort without losing work.
+
+### Daily check
+
+On every shell start, pwsh-tools checks whether `origin/master` has new
+commits. If updates are available, you will see a yellow hint:
+
+```
+  pwsh-tools: N update(s) available -- run 'Update-PwshTools' to update.
+```
 
 ## Adding a Package
 

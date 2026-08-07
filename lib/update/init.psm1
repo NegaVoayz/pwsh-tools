@@ -1,6 +1,6 @@
 # update/init.psm1 -- Init module for update package.
 # Imported by bootstrap/init.ps1 on every shell start.
-# Checks for pwsh-tools updates once per day via git fetch.
+# Checks for pwsh-tools updates once per day via git fetch against origin/master.
 
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot '.git'))) { return }
@@ -26,10 +26,16 @@ $connected = $false
 $behind = 0
 
 try {
-    $fetchResult = git fetch --quiet 2>&1
+    # Auto-commit local changes first (best-effort, silent)
+    if (Get-Command Save-PwshToolsLocal -ErrorAction SilentlyContinue) {
+        $null = Save-PwshToolsLocal 6>&1
+    }
+
+    $fetchResult = git fetch --quiet origin 2>&1
     if ($LASTEXITCODE -eq 0) {
         $connected = $true
-        $behindResult = git rev-list --count 'HEAD..@{u}' 2>&1
+        # Compare against origin/master directly (not @{u}, which is broken on local branches)
+        $behindResult = git rev-list --count 'HEAD..origin/master' 2>&1
         if ($LASTEXITCODE -eq 0) {
             $behind = [int]$behindResult
         }

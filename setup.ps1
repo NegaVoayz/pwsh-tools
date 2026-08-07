@@ -98,7 +98,41 @@ if (-not (Test-Path $customPath)) {
     Write-Host "[=] custom.ps1 already exists: $customPath"
 }
 
-# --- 5. Load tools into current session ---
+# --- 5. Create local branch for user customizations ---
+Push-Location $ScriptRoot
+try {
+    $currentBranch = git branch --show-current 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Could not detect git branch: $currentBranch"
+    } else {
+        $currentBranch = $currentBranch.Trim()
+        switch ($currentBranch) {
+            'master' {
+                Write-Host "[i] On 'master' branch -- creating 'local' branch for your customizations." -ForegroundColor Cyan
+                $createResult = git checkout -b local 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "[+] Created and switched to 'local' branch. Your customizations will be saved here." -ForegroundColor Green
+                    Write-Host "    Run 'Update-PwshTools' to pull new upstream changes from master." -ForegroundColor DarkGray
+                } else {
+                    Write-Error "Failed to create 'local' branch: $createResult"
+                }
+            }
+            'local' {
+                Write-Host "[=] Already on 'local' branch." -ForegroundColor DarkGray
+            }
+            default {
+                Write-Warning "[!] On '$currentBranch' branch (not 'master' or 'local')."
+                Write-Host "    If this is your customization branch, you can keep it or migrate to 'local':" -ForegroundColor DarkGray
+                Write-Host "    git checkout $currentBranch && git checkout -b local" -ForegroundColor Yellow
+                Write-Host "    Then re-run setup.ps1 to continue." -ForegroundColor DarkGray
+            }
+        }
+    }
+} finally {
+    Pop-Location
+}
+
+# --- 6. Load tools into current session ---
 Write-Host "`nLoading pwsh-tools..."
 . "$ScriptRoot\profile.ps1"
 Write-Host ""
